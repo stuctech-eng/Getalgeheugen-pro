@@ -16,31 +16,37 @@ function rndDigits(n) {
   return result;
 }
 
-export default function Game({ player, onMenu, onGameOver }) {
-  const [phase, setPhase] = useState("countdown");
-  const [cdCount, setCdCount] = useState(3);
-  const [seq, setSeq] = useState("");
-  const [activeIdx, setActiveIdx] = useState(-1);
-  const [inp, setInp] = useState("");
-  const [fb, setFb] = useState(null);
-  const [fbMsg, setFbMsg] = useState("");
-  const [shake, setShake] = useState(false);
-  const [wins, setWins] = useState(0);
-  const [fails, setFails] = useState(0);
-  const [round, setRound] = useState(1);
+export default function Game({ player, onMenu, onGameOver, settings }) {
+  var showTime  = (settings && settings.showTime)   || 2500;
+  var winsUp    = (settings && settings.winsUp)     || 3;
+  var failsDown = (settings && settings.failsDown)  || 2;
+  var startD    = (settings && settings.startDigits)|| 2;
+  var showMode  = (settings && settings.showMode)   || "together"; // "together" | "sequential"
 
-  const digitsRef = useRef(2);
-  const seqRef = useRef("");
-  const winsRef = useRef(0);
-  const failsRef = useRef(0);
-  const maxDRef = useRef(2);
-  const winsUpRef = useRef(3);
-  const failsDownRef = useRef(2);
-  const tmr = useRef(null);
-  const cdTmr = useRef(null);
+  const [phase, setPhase]               = useState("countdown");
+  const [cdCount, setCdCount]           = useState(3);
+  const [cdAnim, setCdAnim]             = useState(true);
+  const [seq, setSeq]                   = useState("");
+  const [activeIdx, setActiveIdx]       = useState(-1);
+  const [inp, setInp]                   = useState("");
+  const [fb, setFb]                     = useState(null);
+  const [fbMsg, setFbMsg]               = useState("");
+  const [shake, setShake]               = useState(false);
+  const [wins, setWins]                 = useState(0);
+  const [fails, setFails]               = useState(0);
+  const [round, setRound]               = useState(1);
+  const [displayDigits, setDisplayDigits] = useState(startD);
+
+  const digitsRef  = useRef(startD);
+  const seqRef     = useRef("");
+  const winsRef    = useRef(0);
+  const failsRef   = useRef(0);
+  const maxDRef    = useRef(startD);
+  const tmr        = useRef(null);
+  const cdTmr      = useRef(null);
 
   useEffect(function() {
-    startRound(2);
+    startRound(startD);
     return function() {
       clearTimeout(tmr.current);
       clearInterval(cdTmr.current);
@@ -52,8 +58,10 @@ export default function Game({ player, onMenu, onGameOver }) {
     clearInterval(cdTmr.current);
     var digits = (nd !== undefined) ? nd : digitsRef.current;
     digitsRef.current = digits;
+    setDisplayDigits(digits);
     setPhase("countdown");
     setCdCount(3);
+    setCdAnim(true);
     setInp("");
     setFb(null);
     setActiveIdx(-1);
@@ -61,23 +69,30 @@ export default function Game({ player, onMenu, onGameOver }) {
     var count = 3;
     cdTmr.current = setInterval(function() {
       count = count - 1;
+      setCdAnim(false);
+      setTimeout(function() { setCdAnim(true); }, 60);
       if (count > 0) {
         setCdCount(count);
         if (count % 2 === 0) audio.tick(); else audio.tock();
       } else {
         clearInterval(cdTmr.current);
-        revealSequence(digits);
+        var s = rndDigits(digits);
+        seqRef.current = s;
+        setSeq(s);
+        setInp("");
+        if (showMode === "sequential") {
+          revealSequential(s);
+        } else {
+          audio.whoosh();
+          setPhase("show");
+          tmr.current = setTimeout(function() { setPhase("input"); }, showTime);
+        }
       }
     }, 800);
   }
 
-  async function revealSequence(digits) {
-    var s = rndDigits(digits);
-    seqRef.current = s;
-    setSeq(s);
-    setInp("");
+  async function revealSequential(s) {
     setPhase("show");
-
     for (var i = 0; i < s.length; i++) {
       setActiveIdx(i);
       audio.pop();
@@ -93,7 +108,7 @@ export default function Game({ player, onMenu, onGameOver }) {
     if (phase !== "input") return;
     if (k === "del") {
       audio.plop();
-      setInp(function(i) { return i.slice(0, -1); });
+      setInp(function(prev) { return prev.slice(0, -1); });
       return;
     }
     if (inp.length >= digitsRef.current) return;
@@ -121,7 +136,7 @@ export default function Game({ player, onMenu, onGameOver }) {
       setFails(0);
       setTimeout(function() {
         setRound(function(r) { return r + 1; });
-        if (nw >= winsUpRef.current) {
+        if (nw >= winsUp) {
           audio.levelUp();
           winsRef.current = 0;
           setWins(0);
@@ -142,8 +157,8 @@ export default function Game({ player, onMenu, onGameOver }) {
       winsRef.current = 0;
       setFails(nf);
       setWins(0);
-      if (nf >= failsDownRef.current) {
-        if (digitsRef.current <= 2) {
+      if (nf >= failsDown) {
+        if (digitsRef.current <= startD) {
           saveScore(player, maxDRef.current);
           setTimeout(function() { onGameOver(maxDRef.current); }, 1600);
         } else {
@@ -163,7 +178,7 @@ export default function Game({ player, onMenu, onGameOver }) {
     }
   }
 
-  var n = digitsRef.current || 1;
+  var n = displayDigits || 1;
   var availW = Math.min(window.innerWidth, 480) - 40;
   var gap = 10;
   var cardW = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
@@ -183,45 +198,63 @@ export default function Game({ player, onMenu, onGameOver }) {
 
       <div className="level-row">
         <span className="level-label">Niveau</span>
-        <div className="digit-bubble">{digitsRef.current}</div>
+        <div className="digit-bubble">{displayDigits}</div>
         <span className="level-label">cijfers</span>
       </div>
 
       <div className="progress-wrap">
-        <div className="progress-bar" style={{width: (wins / winsUpRef.current * 100) + "%"}} />
+        <div className="progress-bar" style={{width: (wins / winsUp * 100) + "%"}} />
       </div>
 
       <div className="streak-row">
-        {Array.from({length: winsUpRef.current}, function(_, i) {
+        {Array.from({length: winsUp}, function(_, i) {
           return <span key={i}>{i < wins ? "⭐" : "☆"}</span>;
         })}
-        <span className="streak-hint">{wins}/{winsUpRef.current} voor volgend level</span>
+        <span className="streak-hint">{wins}/{winsUp} voor volgend level</span>
       </div>
 
       <div className="display-area">
+
         {phase === "countdown" && (
           <div className="countdown">
-            <div className="cd-num" style={{color: CD_COLORS[cdCount - 1], textShadow: "0 0 60px " + CD_COLORS[cdCount - 1]}}>
+            <div className="cd-num" style={{
+              color: CD_COLORS[cdCount - 1],
+              textShadow: "0 0 60px " + CD_COLORS[cdCount - 1],
+              animation: cdAnim ? "cdPop 0.18s ease" : "none"
+            }}>
               {cdCount}
             </div>
             <div className="cd-label">Klaarmaken...</div>
           </div>
         )}
 
-        {phase === "show" && (
+        {phase === "show" && showMode === "together" && (
+          <div className="show-cards">
+            {seq.split("").map(function(d, i) {
+              return (
+                <div key={i} className="show-card" style={{
+                  width: cardW, height: cardH, fontSize: cardFont,
+                  borderRadius: Math.round(cardW * 0.2),
+                  background: "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")",
+                  animation: "popIn 0.2s ease " + (i * 0.08) + "s backwards"
+                }}>{d}</div>
+              );
+            })}
+          </div>
+        )}
+
+        {phase === "show" && showMode === "sequential" && (
           <div className="show-cards">
             {seq.split("").map(function(d, i) {
               var isActive = i === activeIdx;
               return (
                 <div key={i} className={"show-card" + (isActive ? " card-active" : " card-hidden")}
                   style={{
+                    width: cardW, height: cardH, fontSize: cardFont,
+                    borderRadius: Math.round(cardW * 0.2),
                     background: isActive
                       ? "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")"
-                      : "rgba(255,255,255,0.05)",
-                    width: cardW,
-                    height: cardH,
-                    fontSize: cardFont,
-                    borderRadius: Math.round(cardW * 0.2)
+                      : "rgba(255,255,255,0.05)"
                   }}>
                   {isActive ? d : ""}
                 </div>
@@ -234,7 +267,7 @@ export default function Game({ player, onMenu, onGameOver }) {
           <div className={"input-area" + (shake ? " shake" : "")}>
             <p className="input-prompt">Wat zag je?</p>
             <div className="entered-row">
-              {Array.from({length: digitsRef.current}, function(_, i) {
+              {Array.from({length: displayDigits}, function(_, i) {
                 var ch = inp[i] || "";
                 var isCur = phase === "input" && i === inp.length;
                 var cls = "entered-slot";
@@ -260,7 +293,8 @@ export default function Game({ player, onMenu, onGameOver }) {
         <div className="numpad">
           {["1","2","3","4","5","6","7","8","9","","0","del"].map(function(k, i) {
             return (
-              <button key={i} className={"num-key" + (k === "" ? " num-empty" : k === "del" ? " num-del" : "")}
+              <button key={i}
+                className={"num-key" + (k === "" ? " num-empty" : k === "del" ? " num-del" : "")}
                 onClick={function() { if (k) tap(k); }}>
                 {k === "del" ? "⌫" : k}
               </button>
@@ -270,7 +304,7 @@ export default function Game({ player, onMenu, onGameOver }) {
       )}
 
       <div className="fail-row">
-        {Array.from({length: failsDownRef.current}, function(_, i) {
+        {Array.from({length: failsDown}, function(_, i) {
           return <span key={i} style={{opacity: i < fails ? 1 : 0.2}}>❤️</span>;
         })}
       </div>

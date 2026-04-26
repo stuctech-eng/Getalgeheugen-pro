@@ -129,3 +129,17 @@ h1 { font-size: clamp(28px, 8vw, 38px); font-weight: 900; letter-spacing: -1px; 
 .score-name { flex: 1; font-size: 15px; font-weight: 600; }
 .score-val { font-size: 13px; font-weight: 800; color: #A855F7; }
 .score-date { font-size: 11px; opacity: 0.3; }
+
+  .result-stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.stat-card { background: rgba(255,255,255,0.07); border-radius: 18px; padding: 14px 20px; text-align: center; min-width: 90px; border: 1px solid rgba(255,255,255,0.1); }
+.stat-num { font-size: 34px; font-weight: 900; color: #A855F7; }
+.stat-label { font-size: 11px; opacity: 0.5; margin-top: 4px; }
+
+.settings-box { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 6px; }
+.setting-row { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 15px 18px; display: flex; flex-direction: column; gap: 10px; }
+.setting-label { font-size: 14px; font-weight: 600; }
+.setting-hint { color: #A855F7; font-weight: 900; }
+
+.mode-btns { display: flex; gap: 8px; }
+.mode-btn { flex: 1; padding: 10px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.mode-active { border-color: #A855F7 !important; background: rgba(168,85,247,0.2) !important; }
