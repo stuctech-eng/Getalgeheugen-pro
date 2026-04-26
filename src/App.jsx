@@ -9,7 +9,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "1.1.0";
+const VERSION = "2.0.0";
 
 const DEFAULT_SETTINGS = {
   showTime: 3000,
@@ -26,16 +26,22 @@ function loadSettings() {
   } catch(e) { return DEFAULT_SETTINGS; }
 }
 
+function loadPlayer() {
+  try { return localStorage.getItem("gg_player") || ""; } catch(e) { return ""; }
+}
+
 export default function App() {
   const [screen, setScreen]       = useState("login");
-  const [player, setPlayer]       = useState("");
-  const [name, setName]           = useState("");
+  const [player, setPlayer]       = useState(loadPlayer);
+  const [name, setName]           = useState(loadPlayer);
   const [settings, setSettings]   = useState(loadSettings);
-  const [lastScore, setLastScore] = useState(null);
+  const [result, setResult]       = useState(null);
 
   function login() {
     if (!name.trim()) return;
-    setPlayer(name.trim());
+    var n = name.trim();
+    setPlayer(n);
+    try { localStorage.setItem("gg_player", n); } catch(e) {}
     setScreen("menu");
   }
 
@@ -45,8 +51,8 @@ export default function App() {
     setScreen("menu");
   }
 
-  function handleGameOver(max) {
-    setLastScore(max);
+  function handleGameOver(res) {
+    setResult(res);
     setScreen("result");
   }
 
@@ -65,26 +71,19 @@ export default function App() {
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
       <p className="sub">Train je werkgeheugen</p>
-      <input
-        className="name-input"
-        placeholder="Voer je naam in..."
-        value={name}
-        maxLength={20}
+      <input className="name-input" placeholder="Voer je naam in..."
+        value={name} maxLength={20}
         onChange={function(e) { setName(e.target.value); }}
-        onKeyDown={function(e) { if (e.key === "Enter") login(); }}
-      />
+        onKeyDown={function(e) { if (e.key === "Enter") login(); }} />
       <button className="btn-primary" onClick={login}>🚀 Spelen</button>
       <p className="version">v{VERSION}</p>
     </div>
   );
 
   if (screen === "game") return (
-    <Game
-      player={player}
-      settings={settings}
+    <Game player={player} settings={settings}
       onMenu={function() { setScreen("menu"); }}
-      onGameOver={handleGameOver}
-    />
+      onGameOver={handleGameOver} />
   );
 
   if (screen === "scores") return (
@@ -92,34 +91,32 @@ export default function App() {
   );
 
   if (screen === "settings") return (
-    <Settings
-      settings={settings}
-      onSave={saveSettings}
-      onBack={function() { setScreen("menu"); }}
-    />
+    <Settings settings={settings} onSave={saveSettings}
+      onBack={function() { setScreen("menu"); }} />
   );
 
   if (screen === "result") return (
     <div className="screen center">
-      <div style={{fontSize:72}}>{lastScore >= 7 ? "🏆" : lastScore >= 5 ? "🥈" : "🎯"}</div>
-      <h2 style={{fontSize:26,fontWeight:900,textAlign:"center"}}>
-        Goed gedaan, {player}!
-      </h2>
+      <div className="result-emoji">
+        {result && result.maxDigits >= 7 ? "🏆" : result && result.maxDigits >= 5 ? "🥈" : "🎯"}
+      </div>
+      <h2 className="result-title">Goed gedaan,<br/>{player}!</h2>
       <div className="result-stats">
         <div className="stat-card">
-          <div className="stat-num">{lastScore}</div>
+          <div className="stat-num">{result ? result.maxDigits : 0}</div>
           <div className="stat-label">Max cijfers</div>
         </div>
+        <div className="stat-card">
+          <div className="stat-num">{result ? result.score : 0}</div>
+          <div className="stat-label">Score</div>
+        </div>
       </div>
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>
-        🔁 Opnieuw
-      </button>
-      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>
-        🏆 Scorebord
-      </button>
-      <button className="btn-ghost" onClick={function() { setScreen("menu"); }}>
-        🏠 Menu
-      </button>
+      <p style={{fontSize:13,opacity:0.5,textAlign:"center"}}>
+        Score = cijfers × streak bonus per ronde
+      </p>
+      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🔁 Opnieuw</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
     </div>
   );
 
@@ -127,9 +124,12 @@ export default function App() {
     <div className="screen center">
       <h1>Welkom<br/><span className="accent">{player}</span></h1>
       <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
-      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
-      <button className="btn-ghost" onClick={function() { setScreen("login"); }}>👤 Wissel speler</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
+      <button className="btn-ghost"   onClick={function() {
+        try { localStorage.removeItem("gg_player"); } catch(e) {}
+        setName(""); setScreen("login");
+      }}>👤 Wissel speler</button>
       <p className="version">v{VERSION}</p>
     </div>
   );

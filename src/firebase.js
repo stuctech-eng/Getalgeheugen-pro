@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+    import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs, orderBy, query, limit } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -13,29 +13,30 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export async function saveScore(name, score) {
+export async function saveScore(name, maxDigits, score) {
   try {
     await addDoc(collection(db, "scores"), {
       name: name,
+      maxDigits: maxDigits,
       score: score,
       date: new Date().toLocaleDateString("nl-NL"),
       timestamp: Date.now()
     });
-  } catch (e) {
+  } catch(e) {
     console.error("Score opslaan mislukt:", e);
   }
 }
 
 export async function getScores() {
   try {
-    const q = query(
+    var q = query(
       collection(db, "scores"),
       orderBy("score", "desc"),
       limit(20)
     );
-    const snap = await getDocs(q);
+    var snap = await getDocs(q);
     return snap.docs.map(function(doc) { return doc.data(); });
-  } catch (e) {
+  } catch(e) {
     console.error("Scores ophalen mislukt:", e);
     return [];
   }

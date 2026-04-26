@@ -7,8 +7,9 @@ const COLORS = [
   ["#EC4899","#F472B6"],["#22C55E","#4ADE80"],["#EAB308","#FDE047"],
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
-const TIPS = ["Geweldig! 🎉","Briljant! 🧠","Perfect! ⭐","Top! 🚀","Wauw! 🔥","Super! 💪"];
+const TIPS = ["Geweldig! 🎉","Briljant! 🧠","Perfect! ⭐","Top! 🚀","Wauw! 🔥","Super! 💪","Ongelooflijk! 🤯","Fenomenaal! 🌟"];
 const CD_COLORS = ["#EF4444","#F97316","#22C55E"];
+const TOTAL_LIVES = 3;
 
 function rndDigits(n) {
   var result = "";
@@ -16,12 +17,17 @@ function rndDigits(n) {
   return result;
 }
 
+// Speed scales with level -- faster as you go higher
+function getShowTime(digits, baseTime) {
+  var reduction = (digits - 2) * 200;
+  return Math.max(1000, baseTime - reduction);
+}
+
 export default function Game({ player, onMenu, onGameOver, settings }) {
-  var showTime  = (settings && settings.showTime)    || 3000;
-  var winsUp    = (settings && settings.winsUp)      || 3;
-  var failsDown = (settings && settings.failsDown)   || 2;
-  var startD    = (settings && settings.startDigits) || 2;
-  var showMode  = (settings && settings.showMode)    || "together";
+  var baseShowTime = (settings && settings.showTime)    || 3000;
+  var winsUp       = (settings && settings.winsUp)      || 3;
+  var startD       = (settings && settings.startDigits) || 2;
+  var showMode     = (settings && settings.showMode)    || "together";
 
   const [phase, setPhase]                 = useState("countdown");
   const [cdCount, setCdCount]             = useState(3);
@@ -33,17 +39,23 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
   const [fbMsg, setFbMsg]                 = useState("");
   const [shake, setShake]                 = useState(false);
   const [wins, setWins]                   = useState(0);
-  const [fails, setFails]                 = useState(0);
+  const [lives, setLives]                 = useState(TOTAL_LIVES);
+  const [streak, setStreak]               = useState(0);
   const [round, setRound]                 = useState(1);
   const [displayDigits, setDisplayDigits] = useState(startD);
+  const [showSpeed, setShowSpeed]         = useState(baseShowTime);
+  const [scoreTotal, setScoreTotal]       = useState(0);
+  const [showStreak, setShowStreak]       = useState(false);
 
-  const digitsRef = useRef(startD);
-  const seqRef    = useRef("");
-  const winsRef   = useRef(0);
-  const failsRef  = useRef(0);
-  const maxDRef   = useRef(startD);
-  const tmr       = useRef(null);
-  const cdTmr     = useRef(null);
+  const digitsRef    = useRef(startD);
+  const seqRef       = useRef("");
+  const winsRef      = useRef(0);
+  const livesRef     = useRef(TOTAL_LIVES);
+  const streakRef    = useRef(0);
+  const maxDRef      = useRef(startD);
+  const scoreTotalRef= useRef(0);
+  const tmr          = useRef(null);
+  const cdTmr        = useRef(null);
 
   useEffect(function() {
     startRound(startD);
@@ -59,12 +71,15 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
     var digits = (nd !== undefined) ? nd : digitsRef.current;
     digitsRef.current = digits;
     setDisplayDigits(digits);
+    var spd = getShowTime(digits, baseShowTime);
+    setShowSpeed(spd);
     setPhase("countdown");
     setCdCount(3);
     setCdAnim(true);
     setInp("");
     setFb(null);
     setActiveIdx(-1);
+    setShowStreak(false);
     audio.tick();
     var count = 3;
     cdTmr.current = setInterval(function() {
@@ -85,7 +100,7 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
         } else {
           audio.whoosh();
           setPhase("show");
-          tmr.current = setTimeout(function() { setPhase("input"); }, showTime);
+          tmr.current = setTimeout(function() { setPhase("input"); }, spd);
         }
       }
     }, 800);
@@ -93,13 +108,15 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
 
   async function revealSequential(s) {
     setPhase("show");
+    var spd = getShowTime(digitsRef.current, baseShowTime);
+    var perCard = Math.max(400, Math.floor(spd / s.length));
     for (var i = 0; i < s.length; i++) {
       setActiveIdx(i);
       audio.pop();
       vibrate();
-      await new Promise(function(r) { setTimeout(r, 800); });
+      await new Promise(function(r) { setTimeout(r, perCard); });
       setActiveIdx(-1);
-      await new Promise(function(r) { setTimeout(r, 200); });
+      await new Promise(function(r) { setTimeout(r, 150); });
     }
     setPhase("input");
   }
@@ -124,16 +141,30 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
   function handleResult(correct) {
     setPhase("fb");
     if (correct) {
+      // Score = digits × streak bonus
+      var newStreak = streakRef.current + 1;
+      streakRef.current = newStreak;
+      setStreak(newStreak);
+      var points = digitsRef.current * Math.max(1, newStreak);
+      scoreTotalRef.current = scoreTotalRef.current + points;
+      setScoreTotal(scoreTotalRef.current);
+      maxDRef.current = Math.max(maxDRef.current, digitsRef.current);
+
+      // Streak fire every 3 correct
+      if (newStreak > 0 && newStreak % 3 === 0) {
+        setShowStreak(true);
+      }
+
+      var tipIdx = Math.floor(Math.random() * TIPS.length);
       setFb("ok");
-      setFbMsg(TIPS[Math.floor(Math.random() * TIPS.length)]);
+      setFbMsg(TIPS[tipIdx] + (newStreak >= 3 ? " 🔥×" + newStreak : ""));
       setTimeout(function() { audio.boing(); }, 150);
       vibrate("ok");
+
       var nw = winsRef.current + 1;
       winsRef.current = nw;
-      failsRef.current = 0;
-      maxDRef.current = Math.max(maxDRef.current, digitsRef.current);
       setWins(nw);
-      setFails(0);
+
       setTimeout(function() {
         setRound(function(r) { return r + 1; });
         if (nw >= winsUp) {
@@ -145,82 +176,99 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
           startRound();
         }
       }, 2000);
+
     } else {
+      // Wrong -- lose a life
+      streakRef.current = 0;
+      setStreak(0);
       setFb("bad");
       setFbMsg("Helaas, het was " + seqRef.current + " 😅");
       audio.buzz();
       vibrate("bad");
       setShake(true);
       setTimeout(function() { setShake(false); }, 500);
-      var nf = failsRef.current + 1;
-      failsRef.current = nf;
+
+      var newLives = livesRef.current - 1;
+      livesRef.current = newLives;
+      setLives(newLives);
       winsRef.current = 0;
-      setFails(nf);
       setWins(0);
-      if (nf >= failsDown) {
-        if (digitsRef.current <= startD) {
-          saveScore(player, maxDRef.current);
-          setTimeout(function() { onGameOver(maxDRef.current); }, 1600);
-        } else {
-          setTimeout(function() {
-            failsRef.current = 0;
-            setFails(0);
-            setRound(function(r) { return r + 1; });
-            startRound(digitsRef.current - 1);
-          }, 1600);
-        }
+
+      if (newLives <= 0) {
+        // Game over -- save score
+        saveScore(player, maxDRef.current, scoreTotalRef.current);
+        setTimeout(function() {
+          onGameOver({
+            maxDigits: maxDRef.current,
+            score: scoreTotalRef.current
+          });
+        }, 1800);
       } else {
         setTimeout(function() {
           setRound(function(r) { return r + 1; });
           startRound();
-        }, 1600);
+        }, 1800);
       }
     }
   }
 
-  var n      = displayDigits || 1;
-  var availW = Math.min(window.innerWidth, 480) - 40;
-  var gap    = 10;
-  var cardW  = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
-  var cardH  = Math.round(cardW * 1.18);
+  var n        = displayDigits || 1;
+  var availW   = Math.min(window.innerWidth, 480) - 40;
+  var gap      = 10;
+  var cardW    = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
+  var cardH    = Math.round(cardW * 1.18);
   var cardFont = Math.round(cardW * 0.58);
-  var slotW  = Math.min(66, Math.floor((availW - gap * (n - 1)) / n));
-  var slotH  = Math.round(slotW * 1.22);
+  var slotW    = Math.min(66, Math.floor((availW - gap * (n - 1)) / n));
+  var slotH    = Math.round(slotW * 1.22);
   var slotFont = Math.round(slotW * 0.56);
+
+  // Speed indicator color
+  var speedPct = Math.round((1 - (showSpeed - 1000) / (baseShowTime - 1000)) * 100);
+  var speedColor = showSpeed > 2000 ? "#22C55E" : showSpeed > 1500 ? "#EAB308" : "#EF4444";
 
   return (
     <div className="screen game-screen">
 
+      {/* Header -- safe area aware */}
       <div className="game-header">
         <button className="back-btn" onClick={function() { audio.plop(); onMenu(); }}>←</button>
         <div className="player-name">👤 {player}</div>
         <div className="round-num">Ronde {round}</div>
       </div>
 
+      {/* Level + speed */}
       <div className="level-row">
         <span className="level-label">Niveau</span>
         <div className="digit-bubble">{displayDigits}</div>
         <span className="level-label">cijfers</span>
+        <div className="speed-badge" style={{color: speedColor}}>
+          ⚡ {(showSpeed/1000).toFixed(1)}s
+        </div>
       </div>
 
+      {/* Progress */}
       <div className="progress-wrap">
         <div className="progress-bar" style={{width: (wins / winsUp * 100) + "%"}} />
       </div>
 
+      {/* Streak + score */}
       <div className="streak-row">
         {Array.from({length: winsUp}, function(_, i) {
           return <span key={i}>{i < wins ? "⭐" : "☆"}</span>;
         })}
-        <span className="streak-hint">{wins}/{winsUp} voor volgend level</span>
+        <span className="streak-hint">{wins}/{winsUp} voor level</span>
+        <span className="score-badge">🏆 {scoreTotal}</span>
+        {streak >= 3 && <span className="fire-badge">🔥{streak}</span>}
       </div>
 
+      {/* Main display */}
       <div className="display-area">
 
         {phase === "countdown" && (
           <div className="countdown">
             <div className="cd-num" style={{
               color: CD_COLORS[cdCount - 1],
-              textShadow: "0 0 60px " + CD_COLORS[cdCount - 1],
+              textShadow: "0 0 80px " + CD_COLORS[cdCount - 1] + ", 0 0 160px " + CD_COLORS[cdCount - 1] + "44",
               animation: cdAnim ? "cdPop 0.18s ease" : "none"
             }}>
               {cdCount}
@@ -237,7 +285,8 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                   width: cardW, height: cardH, fontSize: cardFont,
                   borderRadius: Math.round(cardW * 0.2),
                   background: "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")",
-                  animation: "popIn 0.25s ease " + (i * 0.1) + "s backwards"
+                  animation: "popIn 0.25s ease " + (i * 0.1) + "s backwards",
+                  boxShadow: "0 8px 24px " + COLORS[i % COLORS.length][0] + "66"
                 }}>{d}</div>
               );
             })}
@@ -256,7 +305,8 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                     borderRadius: Math.round(cardW * 0.2),
                     background: isActive
                       ? "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")"
-                      : "rgba(255,255,255,0.05)"
+                      : "rgba(255,255,255,0.05)",
+                    boxShadow: isActive ? "0 0 40px " + COLORS[i % COLORS.length][0] + "88" : "none"
                   }}>
                   {isActive ? d : ""}
                 </div>
@@ -293,6 +343,7 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
         )}
       </div>
 
+      {/* Numpad */}
       {phase === "input" && (
         <div className="numpad">
           {["1","2","3","4","5","6","7","8","9","","0","del"].map(function(k, i) {
@@ -307,13 +358,18 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
         </div>
       )}
 
-      <div className="fail-row">
-        {Array.from({length: failsDown}, function(_, i) {
+      {/* Lives -- prominent at bottom */}
+      <div className="lives-row">
+        {Array.from({length: TOTAL_LIVES}, function(_, i) {
           return (
-            <span key={i} style={{opacity: i < fails ? 1 : 0.2, fontSize: 26}}>❤️</span>
+            <span key={i} className={"life" + (i < lives ? " life-active" : " life-lost")}>
+              {i < lives ? "❤️" : "🖤"}
+            </span>
           );
         })}
+        <span className="lives-label">{lives} {lives === 1 ? "leven" : "levens"} over</span>
       </div>
+
     </div>
   );
 }
