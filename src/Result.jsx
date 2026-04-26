@@ -54,7 +54,8 @@ export default function Result({ result, player, onPlay, onMenu, onScores }) {
   var finalStep = showSpeed ? 6 : 5;
 
   return (
-    <div className="screen center" style={{gap:12, paddingBottom:180}}>
+    <div className="screen center" style={{gap:12, paddingBottom:260}}>
+
 
       <div className="result-emoji" style={{animation:"streakPop 0.5s ease"}}>
         {emoji}
