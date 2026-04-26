@@ -11,12 +11,10 @@ export default function Settings({ settings, onSave, onBack }) {
   ];
 
   return (
-    <div className="screen">
-      <button className="back-btn" onClick={onBack} style={{alignSelf:"flex-start"}}>← Terug</button>
+    <div className="screen" style={{paddingTop:60, paddingBottom:120}}>
       <h2 className="screen-title">⚙️ Instellingen</h2>
 
       <div className="settings-box">
-
         <div className="setting-row">
           <div className="setting-label">Weergave modus</div>
           <div className="mode-btns">
@@ -53,7 +51,10 @@ export default function Settings({ settings, onSave, onBack }) {
         })}
       </div>
 
-      <button className="btn-primary" onClick={function() { onSave(s); }}>✅ Opslaan</button>
+      <div className="bottom-bar">
+        <button className="btn-primary" onClick={function() { onSave(s); }}>✅ Opslaan</button>
+        <button className="btn-ghost" onClick={onBack}>← Terug</button>
+      </div>
     </div>
   );
 }
