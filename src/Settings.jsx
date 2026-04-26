@@ -1,20 +1,26 @@
 import { useState } from "react";
 
+const DIFFICULTY_LEVELS = [
+  { label: "🧘 Zen",       mod: 0.4,  desc: "+40% tijd -- ×0.6 punten" },
+  { label: "🟢 Makkelijk", mod: 0.2,  desc: "+20% tijd -- ×0.8 punten" },
+  { label: "🟡 Normaal",   mod: 0,    desc: "Standaard -- ×1.0 punten" },
+  { label: "🔴 Moeilijk",  mod: -0.2, desc: "-20% tijd -- ×1.4 punten" },
+  { label: "⚡ Pro",       mod: -0.4, desc: "-40% tijd -- ×2.0 punten" },
+];
+
 export default function Settings({ settings, onSave, onBack }) {
   const [s, setS] = useState(Object.assign({}, settings));
 
-  var rows = [
-    {label:"Weergave tijd",          key:"showTime",    min:1000, max:5000, step:500, fmt:function(v){return (v/1000).toFixed(1)+"s";}},
-    {label:"Start cijfers",          key:"startDigits", min:2,    max:5,    step:1,   fmt:function(v){return v;}},
-    {label:"Goed voor level-up",     key:"winsUp",      min:2,    max:6,    step:1,   fmt:function(v){return v;}},
-    {label:"Fouten voor level-down", key:"failsDown",   min:1,    max:5,    step:1,   fmt:function(v){return v;}},
-  ];
+  var currentDiff = DIFFICULTY_LEVELS.find(function(d) {
+    return d.mod === s.difficultyMod;
+  }) || DIFFICULTY_LEVELS[2];
 
   return (
-    <div className="screen" style={{paddingTop:60, paddingBottom:120}}>
+    <div className="screen" style={{paddingTop:60, paddingBottom:140}}>
       <h2 className="screen-title">⚙️ Instellingen</h2>
 
       <div className="settings-box">
+
         <div className="setting-row">
           <div className="setting-label">Weergave modus</div>
           <div className="mode-btns">
@@ -29,26 +35,36 @@ export default function Settings({ settings, onSave, onBack }) {
               1️⃣ Één voor één
             </button>
           </div>
+          <div className="setting-hint-small">
+            {s.showMode === "sequential" ? "Moeilijker -- ×1.5 punten bonus" : "Standaard modus"}
+          </div>
         </div>
 
-        {rows.map(function(r) {
-          return (
-            <div key={r.key} className="setting-row">
-              <div className="setting-label">
-                {r.label} <span className="setting-hint">{r.fmt(s[r.key])}</span>
-              </div>
-              <input type="range"
-                min={r.min} max={r.max} step={r.step} value={s[r.key]}
-                style={{width:"100%", accentColor:"#A855F7", cursor:"pointer"}}
-                onChange={function(e) {
-                  var key = r.key;
-                  var nc = Object.assign({}, s);
-                  nc[key] = +e.target.value;
-                  setS(nc);
-                }} />
-            </div>
-          );
-        })}
+        <div className="setting-row">
+          <div className="setting-label">Moeilijkheidsgraad</div>
+          <div className="diff-btns">
+            {DIFFICULTY_LEVELS.map(function(d) {
+              return (
+                <button key={d.mod}
+                  className={"diff-btn" + (s.difficultyMod === d.mod ? " diff-active" : "")}
+                  onClick={function() { setS(Object.assign({}, s, {difficultyMod: d.mod})); }}>
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="setting-hint-small">{currentDiff.desc}</div>
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-label">
+            Goed voor level-up <span className="setting-hint">{s.winsUp}</span>
+          </div>
+          <input type="range" min={2} max={6} step={1} value={s.winsUp}
+            style={{width:"100%", accentColor:"#A855F7", cursor:"pointer"}}
+            onChange={function(e) { setS(Object.assign({}, s, {winsUp: +e.target.value})); }} />
+        </div>
+
       </div>
 
       <div className="bottom-bar">

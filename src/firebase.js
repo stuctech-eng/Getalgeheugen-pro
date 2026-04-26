@@ -17,28 +17,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export async function saveScore(name, maxDigits, score) {
-  // Only save if score > 0
-  if (score <= 0) return;
-
+  if (score <= 0) return false;
   try {
-    // Check if player already has a score
-    var q = query(
-      collection(db, "scores"),
-      where("name", "==", name)
-    );
+    var q = query(collection(db, "scores"), where("name", "==", name));
     var snap = await getDocs(q);
-
     if (!snap.empty) {
-      // Player exists -- only update if better score
       var existing = snap.docs[0];
       var oldScore = existing.data().score || 0;
-      if (score <= oldScore) return; // Not a new record
-
-      // Delete old score
+      if (score <= oldScore) return false;
       await deleteDoc(doc(db, "scores", existing.id));
     }
-
-    // Save new best score
     await addDoc(collection(db, "scores"), {
       name: name,
       maxDigits: maxDigits,
@@ -46,9 +34,10 @@ export async function saveScore(name, maxDigits, score) {
       date: new Date().toLocaleDateString("nl-NL"),
       timestamp: Date.now()
     });
-
+    return true;
   } catch(e) {
     console.error("Score opslaan mislukt:", e);
+    return false;
   }
 }
 

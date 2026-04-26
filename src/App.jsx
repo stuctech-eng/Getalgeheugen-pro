@@ -2,6 +2,8 @@ import { useState } from "react";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
+import Result from "./Result.jsx";
+import Help from "./Help.jsx";
 
 const COLORS = [
   ["#FF6B35","#FF8C42"],["#A855F7","#C084FC"],["#06B6D4","#22D3EE"],
@@ -9,13 +11,11 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "2.0.0";
+const VERSION = "3.0.0";
 
 const DEFAULT_SETTINGS = {
-  showTime: 3000,
-  startDigits: 2,
+  difficultyMod: 0,
   winsUp: 3,
-  failsDown: 2,
   showMode: "together"
 };
 
@@ -31,11 +31,11 @@ function loadPlayer() {
 }
 
 export default function App() {
-  const [screen, setScreen]       = useState("login");
-  const [player, setPlayer]       = useState(loadPlayer);
-  const [name, setName]           = useState(loadPlayer);
-  const [settings, setSettings]   = useState(loadSettings);
-  const [result, setResult]       = useState(null);
+  const [screen, setScreen]     = useState("login");
+  const [player, setPlayer]     = useState(loadPlayer);
+  const [name, setName]         = useState(loadPlayer);
+  const [settings, setSettings] = useState(loadSettings);
+  const [result, setResult]     = useState(null);
 
   function login() {
     if (!name.trim()) return;
@@ -95,38 +95,25 @@ export default function App() {
       onBack={function() { setScreen("menu"); }} />
   );
 
+  if (screen === "help") return (
+    <Help onBack={function() { setScreen("menu"); }} />
+  );
+
   if (screen === "result") return (
-    <div className="screen center">
-      <div className="result-emoji">
-        {result && result.maxDigits >= 7 ? "🏆" : result && result.maxDigits >= 5 ? "🥈" : "🎯"}
-      </div>
-      <h2 className="result-title">Goed gedaan,<br/>{player}!</h2>
-      <div className="result-stats">
-        <div className="stat-card">
-          <div className="stat-num">{result ? result.maxDigits : 0}</div>
-          <div className="stat-label">Max cijfers</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-num">{result ? result.score : 0}</div>
-          <div className="stat-label">Score</div>
-        </div>
-      </div>
-      <p style={{fontSize:13,opacity:0.5,textAlign:"center"}}>
-        Score = cijfers × streak bonus per ronde
-      </p>
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🔁 Opnieuw</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
-    </div>
+    <Result result={result} player={player}
+      onPlay={function() { setScreen("game"); }}
+      onMenu={function() { setScreen("menu"); }}
+      onScores={function() { setScreen("scores"); }} />
   );
 
   return (
     <div className="screen center">
       <h1>Welkom<br/><span className="accent">{player}</span></h1>
       <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
-      <button className="btn-ghost"   onClick={function() {
+      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
+      <button className="btn-ghost" onClick={function() { setScreen("help"); }}>❓ Help</button>
+      <button className="btn-ghost" onClick={function() {
         try { localStorage.removeItem("gg_player"); } catch(e) {}
         setName(""); setScreen("login");
       }}>👤 Wissel speler</button>
