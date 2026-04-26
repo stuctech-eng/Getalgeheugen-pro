@@ -4,10 +4,10 @@ export default function Settings({ settings, onSave, onBack }) {
   const [s, setS] = useState(Object.assign({}, settings));
 
   var rows = [
-    {label:"Weergave tijd",          key:"showTime",    min:1000, max:5000, step:500,  fmt:function(v){return (v/1000).toFixed(1)+"s";}},
-    {label:"Start cijfers",          key:"startDigits", min:2,    max:5,    step:1,    fmt:function(v){return v;}},
-    {label:"Goed voor level-up",     key:"winsUp",      min:2,    max:6,    step:1,    fmt:function(v){return v;}},
-    {label:"Fouten voor level-down", key:"failsDown",   min:1,    max:5,    step:1,    fmt:function(v){return v;}},
+    {label:"Weergave tijd",          key:"showTime",    min:1000, max:5000, step:500, fmt:function(v){return (v/1000).toFixed(1)+"s";}},
+    {label:"Start cijfers",          key:"startDigits", min:2,    max:5,    step:1,   fmt:function(v){return v;}},
+    {label:"Goed voor level-up",     key:"winsUp",      min:2,    max:6,    step:1,   fmt:function(v){return v;}},
+    {label:"Fouten voor level-down", key:"failsDown",   min:1,    max:5,    step:1,   fmt:function(v){return v;}},
   ];
 
   return (
@@ -39,7 +39,8 @@ export default function Settings({ settings, onSave, onBack }) {
               <div className="setting-label">
                 {r.label} <span className="setting-hint">{r.fmt(s[r.key])}</span>
               </div>
-              <input type="range" min={r.min} max={r.max} step={r.step} value={s[r.key]}
+              <input type="range"
+                min={r.min} max={r.max} step={r.step} value={s[r.key]}
                 style={{width:"100%", accentColor:"#A855F7", cursor:"pointer"}}
                 onChange={function(e) {
                   var key = r.key;

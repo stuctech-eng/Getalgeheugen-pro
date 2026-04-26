@@ -17,33 +17,33 @@ function rndDigits(n) {
 }
 
 export default function Game({ player, onMenu, onGameOver, settings }) {
-  var showTime  = (settings && settings.showTime)   || 2500;
-  var winsUp    = (settings && settings.winsUp)     || 3;
-  var failsDown = (settings && settings.failsDown)  || 2;
-  var startD    = (settings && settings.startDigits)|| 2;
-  var showMode  = (settings && settings.showMode)   || "together"; // "together" | "sequential"
+  var showTime  = (settings && settings.showTime)    || 3000;
+  var winsUp    = (settings && settings.winsUp)      || 3;
+  var failsDown = (settings && settings.failsDown)   || 2;
+  var startD    = (settings && settings.startDigits) || 2;
+  var showMode  = (settings && settings.showMode)    || "together";
 
-  const [phase, setPhase]               = useState("countdown");
-  const [cdCount, setCdCount]           = useState(3);
-  const [cdAnim, setCdAnim]             = useState(true);
-  const [seq, setSeq]                   = useState("");
-  const [activeIdx, setActiveIdx]       = useState(-1);
-  const [inp, setInp]                   = useState("");
-  const [fb, setFb]                     = useState(null);
-  const [fbMsg, setFbMsg]               = useState("");
-  const [shake, setShake]               = useState(false);
-  const [wins, setWins]                 = useState(0);
-  const [fails, setFails]               = useState(0);
-  const [round, setRound]               = useState(1);
+  const [phase, setPhase]                 = useState("countdown");
+  const [cdCount, setCdCount]             = useState(3);
+  const [cdAnim, setCdAnim]               = useState(true);
+  const [seq, setSeq]                     = useState("");
+  const [activeIdx, setActiveIdx]         = useState(-1);
+  const [inp, setInp]                     = useState("");
+  const [fb, setFb]                       = useState(null);
+  const [fbMsg, setFbMsg]                 = useState("");
+  const [shake, setShake]                 = useState(false);
+  const [wins, setWins]                   = useState(0);
+  const [fails, setFails]                 = useState(0);
+  const [round, setRound]                 = useState(1);
   const [displayDigits, setDisplayDigits] = useState(startD);
 
-  const digitsRef  = useRef(startD);
-  const seqRef     = useRef("");
-  const winsRef    = useRef(0);
-  const failsRef   = useRef(0);
-  const maxDRef    = useRef(startD);
-  const tmr        = useRef(null);
-  const cdTmr      = useRef(null);
+  const digitsRef = useRef(startD);
+  const seqRef    = useRef("");
+  const winsRef   = useRef(0);
+  const failsRef  = useRef(0);
+  const maxDRef   = useRef(startD);
+  const tmr       = useRef(null);
+  const cdTmr     = useRef(null);
 
   useEffect(function() {
     startRound(startD);
@@ -97,9 +97,9 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
       setActiveIdx(i);
       audio.pop();
       vibrate();
-      await new Promise(function(r) { setTimeout(r, 500); });
+      await new Promise(function(r) { setTimeout(r, 800); });
       setActiveIdx(-1);
-      await new Promise(function(r) { setTimeout(r, 150); });
+      await new Promise(function(r) { setTimeout(r, 200); });
     }
     setPhase("input");
   }
@@ -178,18 +178,19 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
     }
   }
 
-  var n = displayDigits || 1;
+  var n      = displayDigits || 1;
   var availW = Math.min(window.innerWidth, 480) - 40;
-  var gap = 10;
-  var cardW = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
-  var cardH = Math.round(cardW * 1.18);
+  var gap    = 10;
+  var cardW  = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
+  var cardH  = Math.round(cardW * 1.18);
   var cardFont = Math.round(cardW * 0.58);
-  var slotW = Math.min(66, Math.floor((availW - gap * (n - 1)) / n));
-  var slotH = Math.round(slotW * 1.22);
+  var slotW  = Math.min(66, Math.floor((availW - gap * (n - 1)) / n));
+  var slotH  = Math.round(slotW * 1.22);
   var slotFont = Math.round(slotW * 0.56);
 
   return (
     <div className="screen game-screen">
+
       <div className="game-header">
         <button className="back-btn" onClick={function() { audio.plop(); onMenu(); }}>←</button>
         <div className="player-name">👤 {player}</div>
@@ -236,7 +237,7 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                   width: cardW, height: cardH, fontSize: cardFont,
                   borderRadius: Math.round(cardW * 0.2),
                   background: "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")",
-                  animation: "popIn 0.2s ease " + (i * 0.08) + "s backwards"
+                  animation: "popIn 0.25s ease " + (i * 0.1) + "s backwards"
                 }}>{d}</div>
               );
             })}
@@ -248,7 +249,8 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
             {seq.split("").map(function(d, i) {
               var isActive = i === activeIdx;
               return (
-                <div key={i} className={"show-card" + (isActive ? " card-active" : " card-hidden")}
+                <div key={i}
+                  className={"show-card" + (isActive ? " card-active" : " card-hidden")}
                   style={{
                     width: cardW, height: cardH, fontSize: cardFont,
                     borderRadius: Math.round(cardW * 0.2),
@@ -274,14 +276,16 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                 if (phase === "fb") cls += fb === "ok" ? " slot-ok" : " slot-bad";
                 else if (isCur) cls += " slot-active";
                 return (
-                  <div key={i} className={cls} style={{width: slotW, height: slotH, fontSize: slotFont}}>
+                  <div key={i} className={cls}
+                    style={{width: slotW, height: slotH, fontSize: slotFont}}>
                     {ch}
                   </div>
                 );
               })}
             </div>
             {phase === "fb" && (
-              <div className="feedback-msg" style={{color: fb === "ok" ? "#4ADE80" : "#F87171"}}>
+              <div className="feedback-msg"
+                style={{color: fb === "ok" ? "#4ADE80" : "#F87171"}}>
                 {fbMsg}
               </div>
             )}
@@ -305,7 +309,9 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
 
       <div className="fail-row">
         {Array.from({length: failsDown}, function(_, i) {
-          return <span key={i} style={{opacity: i < fails ? 1 : 0.2}}>❤️</span>;
+          return (
+            <span key={i} style={{opacity: i < fails ? 1 : 0.2, fontSize: 26}}>❤️</span>
+          );
         })}
       </div>
     </div>

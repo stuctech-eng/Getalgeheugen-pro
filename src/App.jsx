@@ -9,8 +9,10 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
+const VERSION = "1.1.0";
+
 const DEFAULT_SETTINGS = {
-  showTime: 2500,
+  showTime: 3000,
   startDigits: 2,
   winsUp: 3,
   failsDown: 2,
@@ -25,10 +27,10 @@ function loadSettings() {
 }
 
 export default function App() {
-  const [screen, setScreen]     = useState("login");
-  const [player, setPlayer]     = useState("");
-  const [name, setName]         = useState("");
-  const [settings, setSettings] = useState(loadSettings);
+  const [screen, setScreen]       = useState("login");
+  const [player, setPlayer]       = useState("");
+  const [name, setName]           = useState("");
+  const [settings, setSettings]   = useState(loadSettings);
   const [lastScore, setLastScore] = useState(null);
 
   function login() {
@@ -63,18 +65,26 @@ export default function App() {
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
       <p className="sub">Train je werkgeheugen</p>
-      <input className="name-input" placeholder="Voer je naam in..."
-        value={name} maxLength={20}
+      <input
+        className="name-input"
+        placeholder="Voer je naam in..."
+        value={name}
+        maxLength={20}
         onChange={function(e) { setName(e.target.value); }}
-        onKeyDown={function(e) { if (e.key === "Enter") login(); }} />
+        onKeyDown={function(e) { if (e.key === "Enter") login(); }}
+      />
       <button className="btn-primary" onClick={login}>🚀 Spelen</button>
+      <p className="version">v{VERSION}</p>
     </div>
   );
 
   if (screen === "game") return (
-    <Game player={player} settings={settings}
+    <Game
+      player={player}
+      settings={settings}
       onMenu={function() { setScreen("menu"); }}
-      onGameOver={handleGameOver} />
+      onGameOver={handleGameOver}
+    />
   );
 
   if (screen === "scores") return (
@@ -82,22 +92,34 @@ export default function App() {
   );
 
   if (screen === "settings") return (
-    <Settings settings={settings} onSave={saveSettings}
-      onBack={function() { setScreen("menu"); }} />
+    <Settings
+      settings={settings}
+      onSave={saveSettings}
+      onBack={function() { setScreen("menu"); }}
+    />
   );
 
   if (screen === "result") return (
     <div className="screen center">
       <div style={{fontSize:72}}>{lastScore >= 7 ? "🏆" : lastScore >= 5 ? "🥈" : "🎯"}</div>
-      <h2 style={{fontSize:26,fontWeight:900,textAlign:"center"}}>Goed gedaan, {player}!</h2>
+      <h2 style={{fontSize:26,fontWeight:900,textAlign:"center"}}>
+        Goed gedaan, {player}!
+      </h2>
       <div className="result-stats">
         <div className="stat-card">
           <div className="stat-num">{lastScore}</div>
           <div className="stat-label">Max cijfers</div>
         </div>
       </div>
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🔁 Opnieuw</button>
-      <button className="btn-ghost" onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
+      <button className="btn-primary" onClick={function() { setScreen("game"); }}>
+        🔁 Opnieuw
+      </button>
+      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>
+        🏆 Scorebord
+      </button>
+      <button className="btn-ghost" onClick={function() { setScreen("menu"); }}>
+        🏠 Menu
+      </button>
     </div>
   );
 
@@ -108,6 +130,7 @@ export default function App() {
       <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
       <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
       <button className="btn-ghost" onClick={function() { setScreen("login"); }}>👤 Wissel speler</button>
+      <p className="version">v{VERSION}</p>
     </div>
   );
 }
