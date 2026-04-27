@@ -37,9 +37,7 @@ export default function Leaderboard({ uid, onBack }) {
                 {i < 3 ? ["🥇","🥈","🥉"][i] : (i+1)+"."}
               </span>
               <div className="score-info">
-                <span className="score-name">
-                  {s.name} {isMe ? "👈" : ""}
-                </span>
+                <span className="score-name">{s.name} {isMe ? "👈" : ""}</span>
                 <span className="score-sub">{s.maxDigits} cijfers</span>
               </div>
               <span className="score-val">{s.score} pts</span>
