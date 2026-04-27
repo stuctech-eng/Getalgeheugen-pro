@@ -148,20 +148,19 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   async function revealSequential(s) {
-  setPhase("show");
-  var st = getShowTime(digitsRef.current, diffMod);
-  var perCard = Math.max(600, Math.floor(st / s.length));
-  for (var i = 0; i < s.length; i++) {
-    setActiveIdx(i);
-    audio.pop();
-    vibrate();
-    await new Promise(function(r) { setTimeout(r, perCard); });
+    setPhase("show");
+    var st = getShowTime(digitsRef.current, diffMod);
+    var perCard = Math.max(600, Math.floor(st / s.length));
+    for (var i = 0; i < s.length; i++) {
+      setActiveIdx(i);
+      audio.pop();
+      vibrate();
+      await new Promise(function(r) { setTimeout(r, perCard); });
+    }
+    setActiveIdx(-1);
+    await new Promise(function(r) { setTimeout(r, 200); });
+    startInputPhase();
   }
-  setActiveIdx(-1);
-  await new Promise(function(r) { setTimeout(r, 200); });
-  startInputPhase();
-}
-
 
   function tap(k) {
     if (phase !== "input") return;
@@ -261,26 +260,32 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
         var oldBest     = (player && player.bestScore) || 0;
         var isNewRecord = finalScore > 0 && finalScore > oldBest;
 
-        // Fire and forget -- geen async/await
-        if (finalScore > 0) {
-          if (isNewRecord) {
-            updateBestScore(uid, finalScore, finalMax);
-          }
-          submitScore(uid, player.name, finalScore, finalMax);
-        }
+        var gameOverData = {
+          maxDigits:   finalMax,
+          score:       finalScore,
+          basePoints:  basePointsRef.current,
+          speedBonus:  speedBonusRef.current,
+          inputBonus:  inputBonusRef.current,
+          streakBonus: streakBonusRef.current,
+          isNewRecord: isNewRecord,
+          rounds:      roundRef.current
+        };
 
-        setTimeout(function() {
-          onGameOver({
-            maxDigits:   finalMax,
-            score:       finalScore,
-            basePoints:  basePointsRef.current,
-            speedBonus:  speedBonusRef.current,
-            inputBonus:  inputBonusRef.current,
-            streakBonus: streakBonusRef.current,
-            isNewRecord: isNewRecord,
-            rounds:      roundRef.current
+        if (finalScore > 0) {
+          var promises = [submitScore(uid, player.name, finalScore, finalMax)];
+          if (isNewRecord) {
+            promises.push(updateBestScore(uid, finalScore, finalMax));
+          }
+          Promise.all(promises).then(function() {
+            onGameOver(gameOverData);
+          }).catch(function() {
+            onGameOver(gameOverData);
           });
-        }, 1800);
+        } else {
+          setTimeout(function() {
+            onGameOver(gameOverData);
+          }, 1800);
+        }
 
       } else {
         setTimeout(function() {
@@ -377,7 +382,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
                     background: isActive
                       ? "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")"
                       : "rgba(255,255,255,0.05)",
-                    boxShadow: isActive ? "0 0 40px " + COLORS[i % COLORS.length][0] + "88" : "none"
+                    boxShadow: isActive
+                      ? "0 0 40px " + COLORS[i % COLORS.length][0] + "88"
+                      : "none"
                   }}>
                   {isActive ? d : ""}
                 </div>

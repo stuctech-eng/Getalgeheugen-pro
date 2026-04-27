@@ -13,7 +13,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "4.2.0";
+const VERSION = "4.3.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -150,6 +150,7 @@ export default function App() {
 
   if (screen === "scores") return (
     <Leaderboard uid={uid}
+      key={screen + Date.now()}
       onBack={function() { setScreen("menu"); }} />
   );
 
