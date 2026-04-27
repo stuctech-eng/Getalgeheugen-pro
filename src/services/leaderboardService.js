@@ -1,19 +1,16 @@
-import { collection, addDoc, getDocs, orderBy, query, limit, where, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 
 export function submitScore(uid, name, score, maxDigits) {
   if (!uid || score <= 0) return Promise.resolve(false);
 
-  // Check if player already has a score
   return getDocs(query(
     collection(db, "leaderboard_global"),
     where("uid", "==", uid)
   )).then(function(snap) {
     if (!snap.empty) {
       var existing = snap.docs[0].data();
-      // Only save if better score
       if (score <= existing.score) return false;
-      // Delete old entry first
       return snap.docs[0].ref.delete().then(function() {
         return true;
       });
@@ -37,12 +34,12 @@ export function submitScore(uid, name, score, maxDigits) {
 }
 
 export function getTopScores() {
-  return getDocs(query(
-    collection(db, "leaderboard_global"),
-    orderBy("score", "desc"),
-    limit(20)
-  )).then(function(snap) {
-    return snap.docs.map(function(d) { return d.data(); });
+  return getDocs(
+    collection(db, "leaderboard_global")
+  ).then(function(snap) {
+    var scores = snap.docs.map(function(d) { return d.data(); });
+    scores.sort(function(a, b) { return b.score - a.score; });
+    return scores.slice(0, 20);
   }).catch(function(e) {
     console.error("getTopScores failed:", e);
     return [];
