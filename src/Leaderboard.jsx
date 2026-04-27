@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
-import { getScores } from "./firebase.js";
+import { getTopScores } from "./services/leaderboardService.js";
 
-export default function Leaderboard({ onBack }) {
-  const [scores, setScores] = useState([]);
+export default function Leaderboard({ uid, onBack }) {
+  const [scores, setScores]   = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(function() {
-    getScores().then(function(data) {
+    getTopScores().then(function(data) {
       setScores(data);
       setLoading(false);
     });
   }, []);
 
   return (
-    <div className="screen" style={{paddingTop:60, paddingBottom:120}}>
+    <div className="screen" style={{paddingBottom:100}}>
       <h2 className="screen-title">🏆 Scorebord</h2>
-      <p style={{fontSize:12, opacity:0.4}}>Alle spelers wereldwijd</p>
+      <p style={{fontSize:12, opacity:0.4}}>Top 20 wereldwijd</p>
 
       {loading && <p className="loading">Laden...</p>}
       {!loading && scores.length === 0 && (
@@ -24,21 +24,25 @@ export default function Leaderboard({ onBack }) {
 
       <div className="board-wrap">
         {scores.map(function(s, i) {
+          var isMe = s.uid === uid;
           return (
             <div key={i} className="score-row" style={{
-              background: i < 3
-                ? "rgba(168,85,247,0.12)"
-                : i % 2 === 0 ? "rgba(255,255,255,0.04)" : "transparent"
+              background: isMe
+                ? "rgba(168,85,247,0.2)"
+                : i < 3 ? "rgba(255,255,255,0.07)" : i % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent",
+              border: isMe ? "1px solid rgba(168,85,247,0.4)" : "1px solid transparent",
+              borderRadius: 14, marginBottom: 6
             }}>
               <span className="score-rank">
                 {i < 3 ? ["🥇","🥈","🥉"][i] : (i+1)+"."}
               </span>
               <div className="score-info">
-                <span className="score-name">{s.name}</span>
+                <span className="score-name">
+                  {s.name} {isMe ? "👈" : ""}
+                </span>
                 <span className="score-sub">{s.maxDigits} cijfers</span>
               </div>
               <span className="score-val">{s.score} pts</span>
-              <span className="score-date">{s.date}</span>
             </div>
           );
         })}

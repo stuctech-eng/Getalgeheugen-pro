@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { audio, vibrate } from "./audio.js";
-import { saveScore } from "./firebase.js";
+import { updateBestScore } from "./services/userService.js";
+import { submitScore } from "./services/leaderboardService.js";
 
 const COLORS = [
   ["#FF6B35","#FF8C42"],["#A855F7","#C084FC"],["#06B6D4","#22D3EE"],
@@ -12,14 +13,12 @@ const CD_COLORS = ["#EF4444","#F97316","#22C55E"];
 const TOTAL_LIVES = 3;
 const START_DIGITS = 3;
 
-// Base show time per digit count (4 digits = 3000ms)
 function getShowTime(digits, diffMod) {
   var base = 3000 + (digits - 4) * 300;
   base = Math.max(1000, base);
   return Math.round(base * (1 + diffMod));
 }
 
-// Input time per digit count
 function getInputTime(digits) {
   if (digits <= 3) return 8000;
   if (digits <= 4) return 10000;
@@ -27,7 +26,6 @@ function getInputTime(digits) {
   return 14000;
 }
 
-// Speed bonus based on difficulty mod
 function getSpeedBonus(diffMod) {
   if (diffMod <= -0.4) return 2.0;
   if (diffMod <= -0.2) return 1.4;
@@ -42,7 +40,7 @@ function rndDigits(n) {
   return result;
 }
 
-export default function Game({ player, onMenu, onGameOver, settings }) {
+export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   var diffMod  = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
   var winsUp   = (settings && settings.winsUp) || 3;
   var showMode = (settings && settings.showMode) || "together";
@@ -64,23 +62,22 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
   const [inputTimeLeft, setInputTimeLeft] = useState(0);
   const [inputMaxTime, setInputMaxTime]   = useState(10000);
   const [scoreTotal, setScoreTotal]       = useState(0);
-  const [isNewRecord, setIsNewRecord]     = useState(false);
 
-  const digitsRef     = useRef(START_DIGITS);
-  const seqRef        = useRef("");
-  const winsRef       = useRef(0);
-  const livesRef      = useRef(TOTAL_LIVES);
-  const streakRef     = useRef(0);
-  const maxDRef       = useRef(START_DIGITS);
-  const scoreTotalRef = useRef(0);
-  const basePointsRef = useRef(0);
-  const speedBonusRef = useRef(0);
-  const inputBonusRef = useRef(0);
-  const streakBonusRef= useRef(0);
-  const inputStartRef = useRef(0);
-  const tmr           = useRef(null);
-  const cdTmr         = useRef(null);
-  const inputTmr      = useRef(null);
+  const digitsRef      = useRef(START_DIGITS);
+  const seqRef         = useRef("");
+  const winsRef        = useRef(0);
+  const livesRef       = useRef(TOTAL_LIVES);
+  const streakRef      = useRef(0);
+  const maxDRef        = useRef(START_DIGITS);
+  const scoreTotalRef  = useRef(0);
+  const basePointsRef  = useRef(0);
+  const speedBonusRef  = useRef(0);
+  const inputBonusRef  = useRef(0);
+  const streakBonusRef = useRef(0);
+  const inputStartRef  = useRef(0);
+  const tmr            = useRef(null);
+  const cdTmr          = useRef(null);
+  const inputTmr       = useRef(null);
 
   useEffect(function() {
     startRound(START_DIGITS);
@@ -144,7 +141,7 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
       setInputTimeLeft(left);
       if (left <= 0) {
         clearInterval(inputTmr.current);
-        handleResult(false, true); // timeout
+        handleResult(false, true);
       }
     }, 50);
   }
@@ -182,50 +179,42 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
     }
   }
 
-  function handleResult(correct, timeout) {
+  async function handleResult(correct, timeout) {
     setPhase("fb");
+
     if (correct) {
-      // Calculate input bonus
       var elapsed = Date.now() - inputStartRef.current;
       var it = getInputTime(digitsRef.current);
       var timeRatio = Math.max(0, 1 - elapsed / it);
       var iBonus = Math.round(timeRatio * digitsRef.current * 5);
       inputBonusRef.current = inputBonusRef.current + iBonus;
 
-      // Streak
       var newStreak = streakRef.current + 1;
       streakRef.current = newStreak;
       setStreak(newStreak);
 
-      // Streak multiplier
       var streakMult = 1.0;
       if (newStreak >= 7) streakMult = 3.0;
       else if (newStreak >= 5) streakMult = 2.0;
       else if (newStreak >= 3) streakMult = 1.5;
 
-      // Base points
       var bp = digitsRef.current * 10;
       basePointsRef.current = basePointsRef.current + bp;
 
-      // Speed bonus
       var sb = Math.round(bp * (getSpeedBonus(diffMod) - 1));
       speedBonusRef.current = speedBonusRef.current + sb;
 
-      // Streak bonus points
       var stb = Math.round(bp * (streakMult - 1));
       streakBonusRef.current = streakBonusRef.current + stb;
 
-      // Mode bonus
       var modeMult = showMode === "sequential" ? 1.5 : 1.0;
-
       var roundScore = Math.round((bp + sb + iBonus + stb) * modeMult);
       scoreTotalRef.current = scoreTotalRef.current + roundScore;
       setScoreTotal(scoreTotalRef.current);
       maxDRef.current = Math.max(maxDRef.current, digitsRef.current);
 
-      var tipIdx = Math.floor(Math.random() * TIPS.length);
       setFb("ok");
-      setFbMsg(TIPS[tipIdx] + (newStreak >= 3 ? " 🔥×" + newStreak : ""));
+      setFbMsg(TIPS[Math.floor(Math.random() * TIPS.length)] + (newStreak >= 3 ? " 🔥×" + newStreak : ""));
       setTimeout(function() { audio.boing(); }, 150);
       vibrate("ok");
 
@@ -263,19 +252,28 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
 
       if (newLives <= 0) {
         var finalScore = scoreTotalRef.current;
-        saveScore(player, maxDRef.current, finalScore).then(function(isRecord) {
-          setIsNewRecord(isRecord);
-        });
+        var finalMax   = maxDRef.current;
+        var isNewRecord = false;
+
+        if (finalScore > 0) {
+          var oldBest = (player && player.bestScore) || 0;
+          if (finalScore > oldBest) {
+            isNewRecord = true;
+            await updateBestScore(uid, finalScore, finalMax);
+          }
+          await submitScore(uid, player.name, finalScore, finalMax);
+        }
+
         setTimeout(function() {
           onGameOver({
-            maxDigits: maxDRef.current,
-            score: finalScore,
-            basePoints: basePointsRef.current,
-            speedBonus: speedBonusRef.current,
-            inputBonus: inputBonusRef.current,
+            maxDigits:   finalMax,
+            score:       finalScore,
+            basePoints:  basePointsRef.current,
+            speedBonus:  speedBonusRef.current,
+            inputBonus:  inputBonusRef.current,
             streakBonus: streakBonusRef.current,
             isNewRecord: isNewRecord,
-            rounds: round
+            rounds:      round
           });
         }, 1800);
       } else {
@@ -303,10 +301,9 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
 
   return (
     <div className="screen game-screen">
-
       <div className="game-header">
         <button className="back-btn" onClick={function() { audio.plop(); onMenu(); }}>←</button>
-        <div className="player-name">👤 {player}</div>
+        <div className="player-name">👤 {player && player.name}</div>
         <div className="round-num">Ronde {round}</div>
       </div>
 
@@ -333,7 +330,6 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
       </div>
 
       <div className="display-area">
-
         {phase === "countdown" && (
           <div className="countdown">
             <div className="cd-num" style={{
@@ -401,7 +397,6 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                 );
               })}
             </div>
-
             {phase === "input" && (
               <div className="input-timer-wrap">
                 <div className="input-timer-bar" style={{
@@ -411,7 +406,6 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
                 }} />
               </div>
             )}
-
             {phase === "fb" && (
               <div className="feedback-msg"
                 style={{color: fb === "ok" ? "#4ADE80" : "#F87171"}}>

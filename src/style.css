@@ -218,3 +218,19 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
   background: linear-gradient(transparent, rgba(13,17,54,0.98) 30%);
   z-index: 10;
 }
+.loading-spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid rgba(168,85,247,0.2);
+  border-top-color: #A855F7;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.best-score-badge {
+  background: rgba(168,85,247,0.12);
+  border: 1px solid rgba(168,85,247,0.3);
+  border-radius: 14px; padding: 10px 18px;
+  font-size: 13px; font-weight: 600;
+  color: #A855F7; text-align: center;
+  width: 100%; max-width: 340px;
+}
