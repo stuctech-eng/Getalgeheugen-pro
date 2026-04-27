@@ -1,3 +1,5 @@
+import { submitScore } from "./services/leaderboardService.js";
+
 import { useState, useEffect } from "react";
 import { useAuth } from "./auth/useAuth.js";
 import { getUser, createUser } from "./services/userService.js";
@@ -40,17 +42,21 @@ export default function App() {
   const [creating, setCreating]   = useState(false);
 
   useEffect(function() {
-    if (!ready) return;
-    if (!uid) { setScreen("error"); return; }
-    getUser(uid).then(function(user) {
-      if (user) {
-        setPlayer(user);
-        setScreen("menu");
-      } else {
-        setScreen("name");
+  if (!ready) return;
+  if (!uid) { setScreen("error"); return; }
+  getUser(uid).then(function(user) {
+    if (user) {
+      setPlayer(user);
+      if (user.bestScore > 0) {
+        submitScore(uid, user.name, user.bestScore, user.bestMaxDigits);
       }
-    });
-  }, [ready, uid]);
+      setScreen("menu");
+    } else {
+      setScreen("name");
+    }
+  });
+}, [ready, uid]);
+
 
   function handleCreateUser() {
     var name = nameInput.trim();
