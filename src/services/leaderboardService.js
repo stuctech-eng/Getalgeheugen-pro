@@ -11,9 +11,14 @@ export function submitScore(uid, name, score, maxDigits) {
 
     if (!snap.empty) {
       var existing = snap.docs[0].data();
-      if (score <= existing.score) return false;
+      var oldScore = existing.score || 0;
 
-      // Wacht op delete, dan pas create
+      if (score <= oldScore) {
+        // Score niet beter -- niets doen
+        return false;
+      }
+
+      // Beter score -- verwijder oude en sla nieuwe op
       return snap.docs[0].ref.delete().then(function() {
         return addDoc(collection(db, "leaderboard_global"), {
           uid: uid,
@@ -27,7 +32,7 @@ export function submitScore(uid, name, score, maxDigits) {
       });
     }
 
-    // Geen bestaande score
+    // Geen bestaande score -- direct opslaan
     return addDoc(collection(db, "leaderboard_global"), {
       uid: uid,
       name: name,

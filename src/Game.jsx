@@ -271,17 +271,18 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
           rounds:      roundRef.current
         };
 
-        if (finalScore > 0) {
-          var promises = [submitScore(uid, player.name, finalScore, finalMax)];
-          if (isNewRecord) {
-            promises.push(updateBestScore(uid, finalScore, finalMax));
-          }
-          Promise.all(promises).then(function() {
+        if (finalScore > 0 && isNewRecord) {
+          // Alleen opslaan als nieuw record
+          Promise.all([
+            updateBestScore(uid, finalScore, finalMax),
+            submitScore(uid, player.name, finalScore, finalMax)
+          ]).then(function() {
             onGameOver(gameOverData);
           }).catch(function() {
             onGameOver(gameOverData);
           });
         } else {
+          // Geen record -- direct naar resultaat
           setTimeout(function() {
             onGameOver(gameOverData);
           }, 1800);

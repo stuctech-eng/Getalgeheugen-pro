@@ -26,11 +26,17 @@ export function createUser(uid, name) {
 }
 
 export function updateBestScore(uid, score, maxDigits) {
-  return updateDoc(doc(db, "users", uid), {
-    bestScore: score,
-    bestMaxDigits: maxDigits
-  }).then(function() {
-    return true;
+  return getDoc(doc(db, "users", uid)).then(function(snap) {
+    if (!snap.exists()) return false;
+    var current = snap.data();
+    var oldBest = current.bestScore || 0;
+    if (score <= oldBest) return false;
+    return updateDoc(doc(db, "users", uid), {
+      bestScore: score,
+      bestMaxDigits: maxDigits
+    }).then(function() {
+      return true;
+    });
   }).catch(function(e) {
     console.error("updateBestScore failed:", e);
     return false;
