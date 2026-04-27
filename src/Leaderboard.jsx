@@ -1,20 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getTopScores } from "./services/leaderboardService.js";
 
 export default function Leaderboard({ uid, onBack }) {
-  const [scores, setScores]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [scores, setScores]     = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(function() {
-    getTopScores().then(function(data) {
+  function loadScores() {
+    return getTopScores().then(function(data) {
       setScores(data);
       setLoading(false);
+      setRefreshing(false);
     });
+  }
+
+  useEffect(function() {
+    loadScores();
   }, []);
+
+  function handleRefresh() {
+    setRefreshing(true);
+    loadScores();
+  }
 
   return (
     <div className="screen" style={{paddingBottom:100}}>
-      <h2 className="screen-title">🏆 Scorebord</h2>
+      <div style={{display:"flex", alignItems:"center", gap:12, width:"100%", maxWidth:400}}>
+        <h2 className="screen-title" style={{flex:1}}>🏆 Scorebord</h2>
+        <button
+          onClick={handleRefresh}
+          style={{
+            background:"rgba(168,85,247,0.15)",
+            border:"1px solid rgba(168,85,247,0.3)",
+            borderRadius:12, padding:"8px 14px",
+            color:"#A855F7", fontSize:20, cursor:"pointer",
+            animation: refreshing ? "spin 0.8s linear infinite" : "none"
+          }}>
+          🔄
+        </button>
+      </div>
+
       <p style={{fontSize:12, opacity:0.4}}>Top 20 wereldwijd</p>
 
       {loading && <p className="loading">Laden...</p>}

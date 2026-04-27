@@ -29,7 +29,7 @@ function loadSettings() {
 }
 
 export default function App() {
-  const { uid, ready, error } = useAuth();
+  const { uid, ready } = useAuth();
 
   const [screen, setScreen]       = useState("loading");
   const [player, setPlayer]       = useState(null);
@@ -38,7 +38,6 @@ export default function App() {
   const [settings, setSettings]   = useState(loadSettings);
   const [result, setResult]       = useState(null);
   const [creating, setCreating]   = useState(false);
-  const [leaderKey, setLeaderKey] = useState(0);
 
   useEffect(function() {
     if (!ready) return;
@@ -85,9 +84,6 @@ export default function App() {
         });
       });
     }
-    setTimeout(function() {
-      setLeaderKey(function(k) { return k + 1; });
-    }, 2000);
     setResult(res);
     setScreen("result");
   }
@@ -154,7 +150,6 @@ export default function App() {
 
   if (screen === "scores") return (
     <Leaderboard uid={uid}
-      key={leaderKey}
       onBack={function() { setScreen("menu"); }} />
   );
 
