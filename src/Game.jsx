@@ -75,6 +75,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   const inputBonusRef  = useRef(0);
   const streakBonusRef = useRef(0);
   const inputStartRef  = useRef(0);
+  const roundRef       = useRef(1);
   const tmr            = useRef(null);
   const cdTmr          = useRef(null);
   const inputTmr       = useRef(null);
@@ -179,7 +180,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
     }
   }
 
-  async function handleResult(correct, timeout) {
+  function handleResult(correct, timeout) {
     setPhase("fb");
 
     if (correct) {
@@ -223,7 +224,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
       setWins(nw);
 
       setTimeout(function() {
-        setRound(function(r) { return r + 1; });
+        roundRef.current = roundRef.current + 1;
+        setRound(roundRef.current);
         if (nw >= winsUp) {
           audio.levelUp();
           winsRef.current = 0;
@@ -238,7 +240,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
       streakRef.current = 0;
       setStreak(0);
       setFb("bad");
-      setFbMsg(timeout ? "Te laat! Het was " + seqRef.current + " ⏱️" : "Helaas, het was " + seqRef.current + " 😅");
+      setFbMsg(timeout
+        ? "Te laat! Het was " + seqRef.current + " ⏱️"
+        : "Helaas, het was " + seqRef.current + " 😅");
       audio.buzz();
       vibrate("bad");
       setShake(true);
@@ -251,17 +255,17 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
       setWins(0);
 
       if (newLives <= 0) {
-        var finalScore = scoreTotalRef.current;
-        var finalMax   = maxDRef.current;
-        var isNewRecord = false;
+        var finalScore  = scoreTotalRef.current;
+        var finalMax    = maxDRef.current;
+        var oldBest     = (player && player.bestScore) || 0;
+        var isNewRecord = finalScore > 0 && finalScore > oldBest;
 
+        // Fire and forget -- geen async/await
         if (finalScore > 0) {
-          var oldBest = (player && player.bestScore) || 0;
-          if (finalScore > oldBest) {
-            isNewRecord = true;
-            await updateBestScore(uid, finalScore, finalMax);
+          if (isNewRecord) {
+            updateBestScore(uid, finalScore, finalMax);
           }
-          await submitScore(uid, player.name, finalScore, finalMax);
+          submitScore(uid, player.name, finalScore, finalMax);
         }
 
         setTimeout(function() {
@@ -273,12 +277,14 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
             inputBonus:  inputBonusRef.current,
             streakBonus: streakBonusRef.current,
             isNewRecord: isNewRecord,
-            rounds:      round
+            rounds:      roundRef.current
           });
         }, 1800);
+
       } else {
         setTimeout(function() {
-          setRound(function(r) { return r + 1; });
+          roundRef.current = roundRef.current + 1;
+          setRound(roundRef.current);
           startRound();
         }, 1800);
       }
