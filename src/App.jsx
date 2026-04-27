@@ -77,15 +77,22 @@ export default function App() {
   }
 
   function handleGameOver(res) {
-    // Update player state immediately -- no waiting for Firebase
-    if (res.score > 0) {
-      setPlayer(function(p) {
-        return Object.assign({}, p, {
-          bestScore: Math.max((p && p.bestScore) || 0, res.score),
-          bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
-        });
+  if (res.score > 0) {
+    setPlayer(function(p) {
+      return Object.assign({}, p, {
+        bestScore: Math.max((p && p.bestScore) || 0, res.score),
+        bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
       });
-    }
+    });
+  }
+  // Wacht 2 seconden zodat Firebase tijd heeft op te slaan
+  setTimeout(function() {
+    setLeaderKey(function(k) { return k + 1; });
+  }, 2000);
+  setResult(res);
+  setScreen("result");
+}
+
     // Force leaderboard to reload next time
     setLeaderKey(function(k) { return k + 1; });
     setResult(res);
@@ -158,10 +165,11 @@ export default function App() {
 
   // SCORES
   if (screen === "scores") return (
-    <Leaderboard uid={uid}
-      key={leaderKey}
-      onBack={function() { setScreen("menu"); }} />
-  );
+  <Leaderboard uid={uid}
+    key={leaderKey}
+    onBack={function() { setScreen("menu"); }} />
+);
+
 
   // SETTINGS
   if (screen === "settings") return (
