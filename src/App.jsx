@@ -13,7 +13,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "4.1.0";
+const VERSION = "4.2.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -31,14 +31,14 @@ function loadSettings() {
 export default function App() {
   const { uid, ready, error } = useAuth();
 
-  const [screen, setScreen]         = useState("loading");
-  const [player, setPlayer]         = useState(null);
-  const [nameInput, setNameInput]   = useState("");
-  const [nameError, setNameError]   = useState("");
-  const [settings, setSettings]     = useState(loadSettings);
-  const [result, setResult]         = useState(null);
-  const [creating, setCreating]     = useState(false);
-  const [leaderKey, setLeaderKey]   = useState(0);
+  const [screen, setScreen]       = useState("loading");
+  const [player, setPlayer]       = useState(null);
+  const [nameInput, setNameInput] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [settings, setSettings]   = useState(loadSettings);
+  const [result, setResult]       = useState(null);
+  const [creating, setCreating]   = useState(false);
+  const [leaderKey, setLeaderKey] = useState(0);
 
   useEffect(function() {
     if (!ready) return;
@@ -77,29 +77,21 @@ export default function App() {
   }
 
   function handleGameOver(res) {
-  if (res.score > 0) {
-    setPlayer(function(p) {
-      return Object.assign({}, p, {
-        bestScore: Math.max((p && p.bestScore) || 0, res.score),
-        bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
+    if (res.score > 0) {
+      setPlayer(function(p) {
+        return Object.assign({}, p, {
+          bestScore: Math.max((p && p.bestScore) || 0, res.score),
+          bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
+        });
       });
-    });
-  }
-  // Wacht 2 seconden zodat Firebase tijd heeft op te slaan
-  setTimeout(function() {
-    setLeaderKey(function(k) { return k + 1; });
-  }, 2000);
-  setResult(res);
-  setScreen("result");
-}
-
-    // Force leaderboard to reload next time
-    setLeaderKey(function(k) { return k + 1; });
+    }
+    setTimeout(function() {
+      setLeaderKey(function(k) { return k + 1; });
+    }, 2000);
     setResult(res);
     setScreen("result");
   }
 
-  // LOADING
   if (screen === "loading") return (
     <div className="screen center">
       <div className="loading-spinner"/>
@@ -107,7 +99,6 @@ export default function App() {
     </div>
   );
 
-  // ERROR
   if (screen === "error") return (
     <div className="screen center">
       <p style={{fontSize:40}}>⚠️</p>
@@ -121,7 +112,6 @@ export default function App() {
     </div>
   );
 
-  // NAME INPUT
   if (screen === "name") return (
     <div className="screen center">
       <div className="logo">
@@ -156,22 +146,18 @@ export default function App() {
     </div>
   );
 
-  // GAME
   if (screen === "game") return (
     <Game uid={uid} player={player} settings={settings}
       onMenu={function() { setScreen("menu"); }}
       onGameOver={handleGameOver} />
   );
 
-  // SCORES
   if (screen === "scores") return (
-  <Leaderboard uid={uid}
-    key={leaderKey}
-    onBack={function() { setScreen("menu"); }} />
-);
+    <Leaderboard uid={uid}
+      key={leaderKey}
+      onBack={function() { setScreen("menu"); }} />
+  );
 
-
-  // SETTINGS
   if (screen === "settings") return (
     <Settings uid={uid} player={player} settings={settings}
       onSave={saveSettings}
@@ -181,12 +167,10 @@ export default function App() {
       onBack={function() { setScreen("menu"); }} />
   );
 
-  // HELP
   if (screen === "help") return (
     <Help onBack={function() { setScreen("menu"); }} />
   );
 
-  // RESULT
   if (screen === "result") return (
     <Result
       result={result}
@@ -196,7 +180,6 @@ export default function App() {
       onScores={function() { setScreen("scores"); }} />
   );
 
-  // MENU
   return (
     <div className="screen center">
       <div className="logo">
