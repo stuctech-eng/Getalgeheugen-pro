@@ -148,19 +148,20 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   async function revealSequential(s) {
-    setPhase("show");
-    var st = getShowTime(digitsRef.current, diffMod);
-    var perCard = Math.max(400, Math.floor(st / s.length));
-    for (var i = 0; i < s.length; i++) {
-      setActiveIdx(i);
-      audio.pop();
-      vibrate();
-      await new Promise(function(r) { setTimeout(r, perCard); });
-      setActiveIdx(-1);
-      await new Promise(function(r) { setTimeout(r, 150); });
-    }
-    startInputPhase();
+  setPhase("show");
+  var st = getShowTime(digitsRef.current, diffMod);
+  var perCard = Math.max(600, Math.floor(st / s.length));
+  for (var i = 0; i < s.length; i++) {
+    setActiveIdx(i);
+    audio.pop();
+    vibrate();
+    await new Promise(function(r) { setTimeout(r, perCard); });
   }
+  setActiveIdx(-1);
+  await new Promise(function(r) { setTimeout(r, 200); });
+  startInputPhase();
+}
+
 
   function tap(k) {
     if (phase !== "input") return;
