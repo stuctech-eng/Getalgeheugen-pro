@@ -271,7 +271,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
           rounds:      roundRef.current
         };
 
-        if (finalScore > 0 && isNewRecord) {
+        if (finalScore > 0) {
+
           // Alleen opslaan als nieuw record
           Promise.all([
             updateBestScore(uid, finalScore, finalMax),
