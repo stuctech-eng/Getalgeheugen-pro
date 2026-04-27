@@ -150,9 +150,10 @@ export default function App() {
 
   if (screen === "scores") return (
   <Leaderboard uid={uid}
-    key={screen + Date.now()}
+    key={Date.now()}
     onBack={function() { setScreen("menu"); }} />
 );
+
 
 
   if (screen === "settings") return (
