@@ -13,7 +13,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "4.0.0";
+const VERSION = "4.1.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -31,13 +31,14 @@ function loadSettings() {
 export default function App() {
   const { uid, ready, error } = useAuth();
 
-  const [screen, setScreen]       = useState("loading");
-  const [player, setPlayer]       = useState(null);
-  const [nameInput, setNameInput] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [settings, setSettings]   = useState(loadSettings);
-  const [result, setResult]       = useState(null);
-  const [creating, setCreating]   = useState(false);
+  const [screen, setScreen]         = useState("loading");
+  const [player, setPlayer]         = useState(null);
+  const [nameInput, setNameInput]   = useState("");
+  const [nameError, setNameError]   = useState("");
+  const [settings, setSettings]     = useState(loadSettings);
+  const [result, setResult]         = useState(null);
+  const [creating, setCreating]     = useState(false);
+  const [leaderKey, setLeaderKey]   = useState(0);
 
   useEffect(function() {
     if (!ready) return;
@@ -76,6 +77,17 @@ export default function App() {
   }
 
   function handleGameOver(res) {
+    // Update player state immediately -- no waiting for Firebase
+    if (res.score > 0) {
+      setPlayer(function(p) {
+        return Object.assign({}, p, {
+          bestScore: Math.max((p && p.bestScore) || 0, res.score),
+          bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
+        });
+      });
+    }
+    // Force leaderboard to reload next time
+    setLeaderKey(function(k) { return k + 1; });
     setResult(res);
     setScreen("result");
   }
@@ -147,6 +159,7 @@ export default function App() {
   // SCORES
   if (screen === "scores") return (
     <Leaderboard uid={uid}
+      key={leaderKey}
       onBack={function() { setScreen("menu"); }} />
   );
 
