@@ -1,37 +1,31 @@
-import {
-  collection, addDoc, getDocs,
-  orderBy, query, limit, serverTimestamp
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, orderBy, query, limit, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 
-export async function submitScore(uid, name, score, maxDigits) {
-  if (!uid || score <= 0) return false;
-  try {
-    await addDoc(collection(db, "leaderboard_global"), {
-      uid: uid,
-      name: name,
-      score: score,
-      maxDigits: maxDigits,
-      createdAt: serverTimestamp()
-    });
+export function submitScore(uid, name, score, maxDigits) {
+  if (!uid || score <= 0) return Promise.resolve(false);
+  return addDoc(collection(db, "leaderboard_global"), {
+    uid: uid,
+    name: name,
+    score: score,
+    maxDigits: maxDigits,
+    createdAt: serverTimestamp()
+  }).then(function() {
     return true;
-  } catch(e) {
+  }).catch(function(e) {
     console.error("submitScore failed:", e);
     return false;
-  }
+  });
 }
 
-export async function getTopScores() {
-  try {
-    var q = query(
-      collection(db, "leaderboard_global"),
-      orderBy("score", "desc"),
-      limit(20)
-    );
-    var snap = await getDocs(q);
+export function getTopScores() {
+  return getDocs(query(
+    collection(db, "leaderboard_global"),
+    orderBy("score", "desc"),
+    limit(20)
+  )).then(function(snap) {
     return snap.docs.map(function(d) { return d.data(); });
-  } catch(e) {
+  }).catch(function(e) {
     console.error("getTopScores failed:", e);
     return [];
-  }
+  });
 }

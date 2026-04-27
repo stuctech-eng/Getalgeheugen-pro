@@ -39,11 +39,9 @@ export default function App() {
   const [result, setResult]       = useState(null);
   const [creating, setCreating]   = useState(false);
 
-  // Once auth is ready, check if user exists
   useEffect(function() {
     if (!ready) return;
     if (!uid) { setScreen("error"); return; }
-
     getUser(uid).then(function(user) {
       if (user) {
         setPlayer(user);
@@ -54,20 +52,21 @@ export default function App() {
     });
   }, [ready, uid]);
 
-  async function handleCreateUser() {
+  function handleCreateUser() {
     var name = nameInput.trim();
     if (name.length < 2) { setNameError("Minimaal 2 tekens"); return; }
     if (name.length > 12) { setNameError("Maximaal 12 tekens"); return; }
     setCreating(true);
     setNameError("");
-    var ok = await createUser(uid, name);
-    if (ok) {
-      setPlayer({ name: name, bestScore: 0, bestMaxDigits: 0 });
-      setScreen("menu");
-    } else {
-      setNameError("Opslaan mislukt, probeer opnieuw");
-    }
-    setCreating(false);
+    createUser(uid, name).then(function(ok) {
+      if (ok) {
+        setPlayer({ name: name, bestScore: 0, bestMaxDigits: 0 });
+        setScreen("menu");
+      } else {
+        setNameError("Opslaan mislukt, probeer opnieuw");
+      }
+      setCreating(false);
+    });
   }
 
   function saveSettings(s) {
@@ -77,20 +76,11 @@ export default function App() {
   }
 
   function handleGameOver(res) {
-    // Update local player state if new record
-    if (res.isNewRecord) {
-      setPlayer(function(p) {
-        return Object.assign({}, p, {
-          bestScore: res.score,
-          bestMaxDigits: res.maxDigits
-        });
-      });
-    }
     setResult(res);
     setScreen("result");
   }
 
-  // ── Loading ──
+  // LOADING
   if (screen === "loading") return (
     <div className="screen center">
       <div className="loading-spinner"/>
@@ -98,20 +88,21 @@ export default function App() {
     </div>
   );
 
-  // ── Error ──
+  // ERROR
   if (screen === "error") return (
     <div className="screen center">
       <p style={{fontSize:40}}>⚠️</p>
       <p style={{opacity:0.6, textAlign:"center"}}>
         Verbinding mislukt.<br/>Controleer je internet.
       </p>
-      <button className="btn-primary" onClick={function() { window.location.reload(); }}>
+      <button className="btn-primary"
+        onClick={function() { window.location.reload(); }}>
         🔄 Opnieuw proberen
       </button>
     </div>
   );
 
-  // ── Name input (first time only) ──
+  // NAME INPUT
   if (screen === "name") return (
     <div className="screen center">
       <div className="logo">
@@ -128,20 +119,17 @@ export default function App() {
       <h1>Getal<span className="accent">Geheugen</span></h1>
       <p className="sub">Welkom! Kies je spelernaam</p>
       <div style={{width:"100%", maxWidth:340, display:"flex", flexDirection:"column", gap:8}}>
-        <input
-          className="name-input"
+        <input className="name-input"
           placeholder="Jouw naam (2-12 tekens)"
-          value={nameInput}
-          maxLength={12}
+          value={nameInput} maxLength={12}
           onChange={function(e) { setNameInput(e.target.value); setNameError(""); }}
-          onKeyDown={function(e) { if (e.key === "Enter") handleCreateUser(); }}
-        />
-        {nameError && <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>}
-        <button
-          className="btn-primary"
+          onKeyDown={function(e) { if (e.key === "Enter") handleCreateUser(); }} />
+        {nameError && (
+          <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>
+        )}
+        <button className="btn-primary"
           style={{opacity: creating ? 0.6 : 1}}
-          onClick={handleCreateUser}
-          disabled={creating}>
+          onClick={handleCreateUser}>
           {creating ? "Opslaan..." : "🚀 Spelen"}
         </button>
       </div>
@@ -149,56 +137,45 @@ export default function App() {
     </div>
   );
 
-  // ── Game ──
+  // GAME
   if (screen === "game") return (
-    <Game
-      uid={uid}
-      player={player}
-      settings={settings}
+    <Game uid={uid} player={player} settings={settings}
       onMenu={function() { setScreen("menu"); }}
-      onGameOver={handleGameOver}
-    />
+      onGameOver={handleGameOver} />
   );
 
-  // ── Scores ──
+  // SCORES
   if (screen === "scores") return (
-    <Leaderboard
-      uid={uid}
-      onBack={function() { setScreen("menu"); }}
-    />
+    <Leaderboard uid={uid}
+      onBack={function() { setScreen("menu"); }} />
   );
 
-  // ── Settings ──
+  // SETTINGS
   if (screen === "settings") return (
-    <Settings
-      uid={uid}
-      player={player}
-      settings={settings}
+    <Settings uid={uid} player={player} settings={settings}
       onSave={saveSettings}
       onNameChange={function(newName) {
         setPlayer(function(p) { return Object.assign({}, p, {name: newName}); });
       }}
-      onBack={function() { setScreen("menu"); }}
-    />
+      onBack={function() { setScreen("menu"); }} />
   );
 
-  // ── Help ──
+  // HELP
   if (screen === "help") return (
     <Help onBack={function() { setScreen("menu"); }} />
   );
 
-  // ── Result ──
+  // RESULT
   if (screen === "result") return (
     <Result
       result={result}
       player={player}
       onPlay={function() { setScreen("game"); }}
       onMenu={function() { setScreen("menu"); }}
-      onScores={function() { setScreen("scores"); }}
-    />
+      onScores={function() { setScreen("scores"); }} />
   );
 
-  // ── Menu ──
+  // MENU
   return (
     <div className="screen center">
       <div className="logo">
@@ -219,10 +196,14 @@ export default function App() {
           🏆 Beste score: {player.bestScore} pts -- {player.bestMaxDigits} cijfers
         </div>
       )}
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("help"); }}>❓ Help</button>
+      <button className="btn-primary"
+        onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
+      <button className="btn-ghost"
+        onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"
+        onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
+      <button className="btn-ghost"
+        onClick={function() { setScreen("help"); }}>❓ Help</button>
       <p className="version">v{VERSION}</p>
     </div>
   );
