@@ -149,10 +149,11 @@ export default function App() {
   );
 
   if (screen === "scores") return (
-    <Leaderboard uid={uid}
-      key={screen + Date.now()}
-      onBack={function() { setScreen("menu"); }} />
-  );
+  <Leaderboard uid={uid}
+    key={screen + Date.now()}
+    onBack={function() { setScreen("menu"); }} />
+);
+
 
   if (screen === "settings") return (
     <Settings uid={uid} player={player} settings={settings}

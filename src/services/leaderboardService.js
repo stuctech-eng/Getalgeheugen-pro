@@ -8,16 +8,26 @@ export function submitScore(uid, name, score, maxDigits) {
     collection(db, "leaderboard_global"),
     where("uid", "==", uid)
   )).then(function(snap) {
+
     if (!snap.empty) {
       var existing = snap.docs[0].data();
       if (score <= existing.score) return false;
+
+      // Wacht op delete, dan pas create
       return snap.docs[0].ref.delete().then(function() {
+        return addDoc(collection(db, "leaderboard_global"), {
+          uid: uid,
+          name: name,
+          score: score,
+          maxDigits: maxDigits,
+          createdAt: serverTimestamp()
+        });
+      }).then(function() {
         return true;
       });
     }
-    return true;
-  }).then(function(shouldSave) {
-    if (!shouldSave) return false;
+
+    // Geen bestaande score
     return addDoc(collection(db, "leaderboard_global"), {
       uid: uid,
       name: name,
@@ -27,6 +37,7 @@ export function submitScore(uid, name, score, maxDigits) {
     }).then(function() {
       return true;
     });
+
   }).catch(function(e) {
     console.error("submitScore failed:", e);
     return false;
