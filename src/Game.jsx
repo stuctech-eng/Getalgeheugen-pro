@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { audio, vibrate } from "./audio.js";
-import { updateBestScore } from "./services/userService.js";
-import { submitScore } from "./services/leaderboardService.js";
+import { saveScore } from "./firebase.js";
 
 const COLORS = [
   ["#FF6B35","#FF8C42"],["#A855F7","#C084FC"],["#06B6D4","#22D3EE"],
@@ -40,7 +39,7 @@ function rndDigits(n) {
   return result;
 }
 
-export default function Game({ uid, player, onMenu, onGameOver, settings }) {
+export default function Game({ player, onMenu, onGameOver, settings }) {
   var diffMod  = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
   var winsUp   = (settings && settings.winsUp) || 3;
   var showMode = (settings && settings.showMode) || "together";
@@ -255,36 +254,20 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
       setWins(0);
 
       if (newLives <= 0) {
-        var finalScore  = scoreTotalRef.current;
-        var finalMax    = maxDRef.current;
-        var oldBest     = (player && player.bestScore) || 0;
-        var isNewRecord = finalScore > 0 && finalScore > oldBest;
+        var finalScore = scoreTotalRef.current;
+        var finalMax   = maxDRef.current;
 
         var gameOverData = {
-          maxDigits:   finalMax,
-          score:       finalScore,
-          basePoints:  basePointsRef.current,
-          speedBonus:  speedBonusRef.current,
-          inputBonus:  inputBonusRef.current,
-          streakBonus: streakBonusRef.current,
-          isNewRecord: isNewRecord,
-          rounds:      roundRef.current
+          score:    finalScore,
+          maxDigits: finalMax
         };
 
-        if (finalScore > 0) {
-          Promise.all([
-            updateBestScore(uid, finalScore, finalMax),
-            submitScore(uid, player.name, finalScore, finalMax)
-          ]).then(function() {
-            onGameOver(gameOverData);
-          }).catch(function() {
-            onGameOver(gameOverData);
-          });
-        } else {
-          setTimeout(function() {
-            onGameOver(gameOverData);
-          }, 1800);
-        }
+        // Simpel opslaan -- altijd
+        saveScore(player, finalScore, finalMax).then(function() {
+          onGameOver(gameOverData);
+        }).catch(function() {
+          onGameOver(gameOverData);
+        });
 
       } else {
         setTimeout(function() {
@@ -314,7 +297,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
     <div className="screen game-screen">
       <div className="game-header">
         <button className="back-btn" onClick={function() { audio.plop(); onMenu(); }}>←</button>
-        <div className="player-name">👤 {player && player.name}</div>
+        <div className="player-name">👤 {player}</div>
         <div className="round-num">Ronde {round}</div>
       </div>
 

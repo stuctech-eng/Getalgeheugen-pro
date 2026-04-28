@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "./auth/useAuth.js";
-import { getUser, createUser } from "./services/userService.js";
-import { submitScore } from "./services/leaderboardService.js";
+import { useState } from "react";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
-import Result from "./Result.jsx";
-import Help from "./Help.jsx";
 
 const COLORS = [
   ["#FF6B35","#FF8C42"],["#A855F7","#C084FC"],["#06B6D4","#22D3EE"],
@@ -14,7 +9,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "4.3.0";
+const VERSION = "5.0.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -29,52 +24,23 @@ function loadSettings() {
   } catch(e) { return DEFAULT_SETTINGS; }
 }
 
+function loadPlayer() {
+  try { return localStorage.getItem("gg_player") || ""; } catch(e) { return ""; }
+}
+
 export default function App() {
-  const { uid, ready } = useAuth();
+  const [screen, setScreen]     = useState("login");
+  const [player, setPlayer]     = useState(loadPlayer);
+  const [name, setName]         = useState(loadPlayer);
+  const [settings, setSettings] = useState(loadSettings);
+  const [result, setResult]     = useState(null);
 
-  const [screen, setScreen]       = useState("loading");
-  const [player, setPlayer]       = useState(null);
-  const [nameInput, setNameInput] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [settings, setSettings]   = useState(loadSettings);
-  const [result, setResult]       = useState(null);
-  const [creating, setCreating]   = useState(false);
-
-  useEffect(function() {
-  if (!ready) return;
-  if (!uid) { setScreen("error"); return; }
-  getUser(uid).then(function(user) {
-    if (user) {
-      setPlayer(user);
-      setScreen("menu");
-      setTimeout(function() {
-        if (user.bestScore > 0) {
-          submitScore(uid, user.name, user.bestScore, user.bestMaxDigits);
-        }
-      }, 2000);
-    } else {
-      setScreen("name");
-    }
-  });
-}, [ready, uid]);
-
- 
-
-  function handleCreateUser() {
-    var name = nameInput.trim();
-    if (name.length < 2) { setNameError("Minimaal 2 tekens"); return; }
-    if (name.length > 12) { setNameError("Maximaal 12 tekens"); return; }
-    setCreating(true);
-    setNameError("");
-    createUser(uid, name).then(function(ok) {
-      if (ok) {
-        setPlayer({ name: name, bestScore: 0, bestMaxDigits: 0 });
-        setScreen("menu");
-      } else {
-        setNameError("Opslaan mislukt, probeer opnieuw");
-      }
-      setCreating(false);
-    });
+  function login() {
+    var n = name.trim();
+    if (n.length < 2) return;
+    setPlayer(n);
+    try { localStorage.setItem("gg_player", n); } catch(e) {}
+    setScreen("menu");
   }
 
   function saveSettings(s) {
@@ -84,39 +50,11 @@ export default function App() {
   }
 
   function handleGameOver(res) {
-    if (res.score > 0) {
-      setPlayer(function(p) {
-        return Object.assign({}, p, {
-          bestScore: Math.max((p && p.bestScore) || 0, res.score),
-          bestMaxDigits: Math.max((p && p.bestMaxDigits) || 0, res.maxDigits)
-        });
-      });
-    }
     setResult(res);
     setScreen("result");
   }
 
-  if (screen === "loading") return (
-    <div className="screen center">
-      <div className="loading-spinner"/>
-      <p style={{opacity:0.4, marginTop:16}}>Laden...</p>
-    </div>
-  );
-
-  if (screen === "error") return (
-    <div className="screen center">
-      <p style={{fontSize:40}}>⚠️</p>
-      <p style={{opacity:0.6, textAlign:"center"}}>
-        Verbinding mislukt.<br/>Controleer je internet.
-      </p>
-      <button className="btn-primary"
-        onClick={function() { window.location.reload(); }}>
-        🔄 Opnieuw proberen
-      </button>
-    </div>
-  );
-
-  if (screen === "name") return (
+  if (screen === "login") return (
     <div className="screen center">
       <div className="logo">
         {["3","7","2","8"].map(function(n, i) {
@@ -130,58 +68,54 @@ export default function App() {
         })}
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
-      <p className="sub">Welkom! Kies je spelernaam</p>
-      <div style={{width:"100%", maxWidth:340, display:"flex", flexDirection:"column", gap:8}}>
-        <input className="name-input"
-          placeholder="Jouw naam (2-12 tekens)"
-          value={nameInput} maxLength={12}
-          onChange={function(e) { setNameInput(e.target.value); setNameError(""); }}
-          onKeyDown={function(e) { if (e.key === "Enter") handleCreateUser(); }} />
-        {nameError && (
-          <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>
-        )}
-        <button className="btn-primary"
-          style={{opacity: creating ? 0.6 : 1}}
-          onClick={handleCreateUser}>
-          {creating ? "Opslaan..." : "🚀 Spelen"}
-        </button>
-      </div>
+      <p className="sub">Train je werkgeheugen</p>
+      <input className="name-input"
+        placeholder="Jouw naam..."
+        value={name} maxLength={12}
+        onChange={function(e) { setName(e.target.value); }}
+        onKeyDown={function(e) { if (e.key === "Enter") login(); }} />
+      <button className="btn-primary" onClick={login}>🚀 Spelen</button>
       <p className="version">v{VERSION}</p>
     </div>
   );
 
   if (screen === "game") return (
-    <Game uid={uid} player={player} settings={settings}
+    <Game player={player} settings={settings}
       onMenu={function() { setScreen("menu"); }}
       onGameOver={handleGameOver} />
   );
 
   if (screen === "scores") return (
-    <Leaderboard uid={uid}
-      key={Date.now()}
-      onBack={function() { setScreen("menu"); }} />
+    <Leaderboard onBack={function() { setScreen("menu"); }} />
   );
 
   if (screen === "settings") return (
-    <Settings uid={uid} player={player} settings={settings}
-      onSave={saveSettings}
-      onNameChange={function(newName) {
-        setPlayer(function(p) { return Object.assign({}, p, {name: newName}); });
-      }}
+    <Settings settings={settings} onSave={saveSettings}
       onBack={function() { setScreen("menu"); }} />
   );
 
-  if (screen === "help") return (
-    <Help onBack={function() { setScreen("menu"); }} />
-  );
-
   if (screen === "result") return (
-    <Result
-      result={result}
-      player={player}
-      onPlay={function() { setScreen("game"); }}
-      onMenu={function() { setScreen("menu"); }}
-      onScores={function() { setScreen("scores"); }} />
+    <div className="screen center">
+      <div style={{fontSize:72}}>
+        {result && result.maxDigits >= 6 ? "🏆" : result && result.maxDigits >= 4 ? "🎯" : "💪"}
+      </div>
+      <h2 style={{fontSize:26, fontWeight:900, textAlign:"center"}}>
+        Goed gedaan, {player}!
+      </h2>
+      <div className="result-stats">
+        <div className="stat-card">
+          <div className="stat-num">{result && result.score}</div>
+          <div className="stat-label">Punten</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num">{result && result.maxDigits}</div>
+          <div className="stat-label">Max cijfers</div>
+        </div>
+      </div>
+      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🔁 Opnieuw</button>
+      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost" onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
+    </div>
   );
 
   return (
@@ -198,20 +132,14 @@ export default function App() {
         })}
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
-      <p className="sub">Welkom, <span className="accent">{player && player.name}</span>!</p>
-      {player && player.bestScore > 0 && (
-        <div className="best-score-badge">
-          🏆 Beste score: {player.bestScore} pts -- {player.bestMaxDigits} cijfers
-        </div>
-      )}
-      <button className="btn-primary"
-        onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
-      <button className="btn-ghost"
-        onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost"
-        onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
-      <button className="btn-ghost"
-        onClick={function() { setScreen("help"); }}>❓ Help</button>
+      <p className="sub">Welkom, <span className="accent">{player}</span>!</p>
+      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
+      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
+      <button className="btn-ghost" onClick={function() {
+        try { localStorage.removeItem("gg_player"); } catch(e) {}
+        setName(""); setScreen("login");
+      }}>👤 Wissel speler</button>
       <p className="version">v{VERSION}</p>
     </div>
   );
