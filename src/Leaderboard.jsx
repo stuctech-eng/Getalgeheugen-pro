@@ -1,15 +1,48 @@
 import { useState, useEffect } from "react";
-import { getTopScores } from "./services/leaderboardService.js";
+import { db } from "./lib/firebase.js";
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  onSnapshot
+} from "firebase/firestore";
 
 export default function Leaderboard({ uid, onBack }) {
   const [scores, setScores]   = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(function() {
-    getTopScores().then(function(data) {
-      setScores(data);
-      setLoading(false);
-    });
+
+    const q = query(
+      collection(db, "leaderboard_global"),
+      orderBy("score", "desc"),
+      limit(20)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      function(snapshot) {
+        const data = snapshot.docs.map(function(doc) {
+          return { id: doc.id, ...doc.data() };
+        });
+
+        console.log("LIVE DATA:", data);
+
+        setScores(data);
+        setLoading(false);
+      },
+      function(error) {
+        console.error("FIRESTORE ERROR:", error);
+        alert("Firestore error: " + error.message);
+        setLoading(false);
+      }
+    );
+
+    return function() {
+      unsubscribe();
+    };
+
   }, []);
 
   return (
@@ -26,7 +59,7 @@ export default function Leaderboard({ uid, onBack }) {
         {scores.map(function(s, i) {
           var isMe = s.uid === uid;
           return (
-            <div key={i} className="score-row" style={{
+            <div key={s.id} className="score-row" style={{
               background: isMe
                 ? "rgba(168,85,247,0.2)"
                 : i < 3 ? "rgba(255,255,255,0.07)"
