@@ -32,18 +32,16 @@ function loadPlayer() {
 export default function App() {
   const { uid, ready } = useAuth();
 
-  const [screen, setScreen]     = useState("loading");
-  const [player, setPlayer]     = useState(loadPlayer);
+  const [screen, setScreen]       = useState("loading");
+  const [player, setPlayer]       = useState(loadPlayer);
   const [nameInput, setNameInput] = useState("");
   const [nameError, setNameError] = useState("");
-  const [settings, setSettings] = useState(loadSettings);
-  const [result, setResult]     = useState(null);
+  const [settings, setSettings]   = useState(loadSettings);
+  const [result, setResult]       = useState(null);
 
   useEffect(function() {
     if (!ready) return;
     if (!uid) { setScreen("error"); return; }
-
-    // Check of naam al bekend is
     var saved = loadPlayer();
     if (saved) {
       setPlayer(saved);
