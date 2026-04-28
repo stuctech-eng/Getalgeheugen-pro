@@ -272,8 +272,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
         };
 
         if (finalScore > 0) {
-
-          // Alleen opslaan als nieuw record
           Promise.all([
             updateBestScore(uid, finalScore, finalMax),
             submitScore(uid, player.name, finalScore, finalMax)
@@ -283,7 +281,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
             onGameOver(gameOverData);
           });
         } else {
-          // Geen record -- direct naar resultaat
           setTimeout(function() {
             onGameOver(gameOverData);
           }, 1800);
@@ -384,9 +381,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
                     background: isActive
                       ? "linear-gradient(135deg," + COLORS[i % COLORS.length][0] + "," + COLORS[i % COLORS.length][1] + ")"
                       : "rgba(255,255,255,0.05)",
-                    boxShadow: isActive
-                      ? "0 0 40px " + COLORS[i % COLORS.length][0] + "88"
-                      : "none"
+                    boxShadow: isActive ? "0 0 40px " + COLORS[i % COLORS.length][0] + "88" : "none"
                   }}>
                   {isActive ? d : ""}
                 </div>

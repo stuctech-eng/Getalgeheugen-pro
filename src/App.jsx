@@ -1,8 +1,7 @@
-import { submitScore } from "./services/leaderboardService.js";
-
 import { useState, useEffect } from "react";
 import { useAuth } from "./auth/useAuth.js";
 import { getUser, createUser } from "./services/userService.js";
+import { submitScore } from "./services/leaderboardService.js";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
@@ -42,21 +41,21 @@ export default function App() {
   const [creating, setCreating]   = useState(false);
 
   useEffect(function() {
-  if (!ready) return;
-  if (!uid) { setScreen("error"); return; }
-  getUser(uid).then(function(user) {
-    if (user) {
-      setPlayer(user);
-      if (user.bestScore > 0) {
-        submitScore(uid, user.name, user.bestScore, user.bestMaxDigits);
+    if (!ready) return;
+    if (!uid) { setScreen("error"); return; }
+    getUser(uid).then(function(user) {
+      if (user) {
+        setPlayer(user);
+        // Sync scorebord bij app start
+        if (user.bestScore > 0) {
+          submitScore(uid, user.name, user.bestScore, user.bestMaxDigits);
+        }
+        setScreen("menu");
+      } else {
+        setScreen("name");
       }
-      setScreen("menu");
-    } else {
-      setScreen("name");
-    }
-  });
-}, [ready, uid]);
-
+    });
+  }, [ready, uid]);
 
   function handleCreateUser() {
     var name = nameInput.trim();
@@ -155,12 +154,10 @@ export default function App() {
   );
 
   if (screen === "scores") return (
-  <Leaderboard uid={uid}
-    key={Date.now()}
-    onBack={function() { setScreen("menu"); }} />
-);
-
-
+    <Leaderboard uid={uid}
+      key={Date.now()}
+      onBack={function() { setScreen("menu"); }} />
+  );
 
   if (screen === "settings") return (
     <Settings uid={uid} player={player} settings={settings}

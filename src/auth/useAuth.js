@@ -5,7 +5,6 @@ import { auth } from "../lib/firebase.js";
 export function useAuth() {
   const [uid, setUid]     = useState(null);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(function() {
     var unsub = onAuthStateChanged(auth, function(user) {
@@ -13,8 +12,7 @@ export function useAuth() {
         setUid(user.uid);
         setReady(true);
       } else {
-        signInAnonymously(auth).catch(function(err) {
-          setError(err.message);
+        signInAnonymously(auth).catch(function() {
           setReady(true);
         });
       }
@@ -22,5 +20,5 @@ export function useAuth() {
     return function() { unsub(); };
   }, []);
 
-  return { uid, ready, error };
+  return { uid, ready };
 }

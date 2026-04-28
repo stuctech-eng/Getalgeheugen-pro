@@ -31,9 +31,7 @@ export default function Leaderboard({ uid, onBack }) {
                 ? "rgba(168,85,247,0.2)"
                 : i < 3 ? "rgba(255,255,255,0.07)"
                 : i % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent",
-              border: isMe
-                ? "1px solid rgba(168,85,247,0.4)"
-                : "1px solid transparent",
+              border: isMe ? "1px solid rgba(168,85,247,0.4)" : "1px solid transparent",
               borderRadius: 14, marginBottom: 6
             }}>
               <span className="score-rank">
