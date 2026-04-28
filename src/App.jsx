@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "./auth/useAuth.js";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
@@ -9,7 +10,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "5.0.0";
+const VERSION = "5.1.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -29,17 +30,35 @@ function loadPlayer() {
 }
 
 export default function App() {
-  const [screen, setScreen]     = useState("login");
+  const { uid, ready } = useAuth();
+
+  const [screen, setScreen]     = useState("loading");
   const [player, setPlayer]     = useState(loadPlayer);
-  const [name, setName]         = useState(loadPlayer);
+  const [nameInput, setNameInput] = useState("");
+  const [nameError, setNameError] = useState("");
   const [settings, setSettings] = useState(loadSettings);
   const [result, setResult]     = useState(null);
 
-  function login() {
-    var n = name.trim();
-    if (n.length < 2) return;
-    setPlayer(n);
-    try { localStorage.setItem("gg_player", n); } catch(e) {}
+  useEffect(function() {
+    if (!ready) return;
+    if (!uid) { setScreen("error"); return; }
+
+    // Check of naam al bekend is
+    var saved = loadPlayer();
+    if (saved) {
+      setPlayer(saved);
+      setScreen("menu");
+    } else {
+      setScreen("name");
+    }
+  }, [ready, uid]);
+
+  function handleNameSave() {
+    var name = nameInput.trim();
+    if (name.length < 2) { setNameError("Minimaal 2 tekens"); return; }
+    if (name.length > 12) { setNameError("Maximaal 12 tekens"); return; }
+    setPlayer(name);
+    try { localStorage.setItem("gg_player", name); } catch(e) {}
     setScreen("menu");
   }
 
@@ -54,7 +73,27 @@ export default function App() {
     setScreen("result");
   }
 
-  if (screen === "login") return (
+  if (screen === "loading") return (
+    <div className="screen center">
+      <div className="loading-spinner"/>
+      <p style={{opacity:0.4, marginTop:16}}>Laden...</p>
+    </div>
+  );
+
+  if (screen === "error") return (
+    <div className="screen center">
+      <p style={{fontSize:40}}>⚠️</p>
+      <p style={{opacity:0.6, textAlign:"center"}}>
+        Verbinding mislukt.<br/>Controleer je internet.
+      </p>
+      <button className="btn-primary"
+        onClick={function() { window.location.reload(); }}>
+        🔄 Opnieuw proberen
+      </button>
+    </div>
+  );
+
+  if (screen === "name") return (
     <div className="screen center">
       <div className="logo">
         {["3","7","2","8"].map(function(n, i) {
@@ -68,29 +107,45 @@ export default function App() {
         })}
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
-      <p className="sub">Train je werkgeheugen</p>
-      <input className="name-input"
-        placeholder="Jouw naam..."
-        value={name} maxLength={12}
-        onChange={function(e) { setName(e.target.value); }}
-        onKeyDown={function(e) { if (e.key === "Enter") login(); }} />
-      <button className="btn-primary" onClick={login}>🚀 Spelen</button>
+      <p className="sub">Welkom! Kies je spelernaam</p>
+      <div style={{width:"100%", maxWidth:340, display:"flex", flexDirection:"column", gap:8}}>
+        <input className="name-input"
+          placeholder="Jouw naam (2-12 tekens)"
+          value={nameInput} maxLength={12}
+          onChange={function(e) { setNameInput(e.target.value); setNameError(""); }}
+          onKeyDown={function(e) { if (e.key === "Enter") handleNameSave(); }} />
+        {nameError && (
+          <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>
+        )}
+        <button className="btn-primary" onClick={handleNameSave}>
+          🚀 Spelen
+        </button>
+      </div>
       <p className="version">v{VERSION}</p>
     </div>
   );
 
   if (screen === "game") return (
-    <Game player={player} settings={settings}
+    <Game uid={uid} player={player} settings={settings}
       onMenu={function() { setScreen("menu"); }}
       onGameOver={handleGameOver} />
   );
 
   if (screen === "scores") return (
-    <Leaderboard onBack={function() { setScreen("menu"); }} />
+    <Leaderboard uid={uid}
+      onBack={function() { setScreen("menu"); }} />
   );
 
   if (screen === "settings") return (
-    <Settings settings={settings} onSave={saveSettings}
+    <Settings
+      settings={settings}
+      player={player}
+      uid={uid}
+      onSave={saveSettings}
+      onNameChange={function(newName) {
+        setPlayer(newName);
+        try { localStorage.setItem("gg_player", newName); } catch(e) {}
+      }}
       onBack={function() { setScreen("menu"); }} />
   );
 
@@ -136,10 +191,6 @@ export default function App() {
       <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
       <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
       <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
-      <button className="btn-ghost" onClick={function() {
-        try { localStorage.removeItem("gg_player"); } catch(e) {}
-        setName(""); setScreen("login");
-      }}>👤 Wissel speler</button>
       <p className="version">v{VERSION}</p>
     </div>
   );

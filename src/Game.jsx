@@ -39,7 +39,7 @@ function rndDigits(n) {
   return result;
 }
 
-export default function Game({ player, onMenu, onGameOver, settings }) {
+export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   var diffMod  = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
   var winsUp   = (settings && settings.winsUp) || 3;
   var showMode = (settings && settings.showMode) || "together";
@@ -257,16 +257,16 @@ export default function Game({ player, onMenu, onGameOver, settings }) {
         var finalScore = scoreTotalRef.current;
         var finalMax   = maxDRef.current;
 
-        var gameOverData = {
-          score:    finalScore,
-          maxDigits: finalMax
-        };
-
-        // Simpel opslaan -- altijd
-        saveScore(player, finalScore, finalMax).then(function() {
-          onGameOver(gameOverData);
+        saveScore(uid, player, finalScore, finalMax).then(function() {
+          onGameOver({
+            score:     finalScore,
+            maxDigits: finalMax
+          });
         }).catch(function() {
-          onGameOver(gameOverData);
+          onGameOver({
+            score:     finalScore,
+            maxDigits: finalMax
+          });
         });
 
       } else {
