@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { updateName } from "./services/userService.js";
 
 const DIFFICULTY_LEVELS = [
   { label: "🧘 Zen",       mod: 0.4,  desc: "+40% tijd -- ×0.6 punten" },
@@ -9,58 +8,18 @@ const DIFFICULTY_LEVELS = [
   { label: "⚡ Pro",       mod: -0.4, desc: "-40% tijd -- ×2.0 punten" },
 ];
 
-export default function Settings({ uid, player, settings, onSave, onNameChange, onBack }) {
-  const [s, setS]             = useState(Object.assign({}, settings));
-  const [newName, setNewName] = useState((player && player.name) || "");
-  const [nameMsg, setNameMsg] = useState("");
-  const [saving, setSaving]   = useState(false);
+export default function Settings({ settings, onSave, onBack }) {
+  const [s, setS] = useState(Object.assign({}, settings));
 
   var currentDiff = DIFFICULTY_LEVELS.find(function(d) {
     return d.mod === s.difficultyMod;
   }) || DIFFICULTY_LEVELS[2];
 
-  async function handleNameSave() {
-    var name = newName.trim();
-    if (name.length < 2) { setNameMsg("Minimaal 2 tekens"); return; }
-    if (name.length > 12) { setNameMsg("Maximaal 12 tekens"); return; }
-    setSaving(true);
-    var ok = await updateName(uid, name);
-    if (ok) {
-      onNameChange(name);
-      setNameMsg("✅ Naam opgeslagen!");
-    } else {
-      setNameMsg("❌ Opslaan mislukt");
-    }
-    setSaving(false);
-    setTimeout(function() { setNameMsg(""); }, 3000);
-  }
-
   return (
-    <div className="screen" style={{paddingTop:60, paddingBottom:160}}>
+    <div className="screen" style={{paddingTop:60, paddingBottom:140}}>
       <h2 className="screen-title">⚙️ Instellingen</h2>
 
       <div className="settings-box">
-
-        <div className="setting-row">
-          <div className="setting-label">Naam wijzigen</div>
-          <div style={{display:"flex", gap:8}}>
-            <input
-              className="name-input"
-              style={{flex:1, padding:"10px 14px", fontSize:16}}
-              value={newName}
-              maxLength={12}
-              onChange={function(e) { setNewName(e.target.value); setNameMsg(""); }}
-            />
-            <button
-              className="btn-primary"
-              style={{width:"auto", padding:"10px 16px", fontSize:14, opacity: saving ? 0.6 : 1}}
-              onClick={handleNameSave}
-              disabled={saving}>
-              {saving ? "..." : "Opslaan"}
-            </button>
-          </div>
-          {nameMsg && <p style={{fontSize:13, opacity:0.7}}>{nameMsg}</p>}
-        </div>
 
         <div className="setting-row">
           <div className="setting-label">Weergave modus</div>
