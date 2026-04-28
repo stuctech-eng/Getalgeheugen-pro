@@ -41,21 +41,24 @@ export default function App() {
   const [creating, setCreating]   = useState(false);
 
   useEffect(function() {
-    if (!ready) return;
-    if (!uid) { setScreen("error"); return; }
-    getUser(uid).then(function(user) {
-      if (user) {
-        setPlayer(user);
-        // Sync scorebord bij app start
+  if (!ready) return;
+  if (!uid) { setScreen("error"); return; }
+  getUser(uid).then(function(user) {
+    if (user) {
+      setPlayer(user);
+      setScreen("menu");
+      setTimeout(function() {
         if (user.bestScore > 0) {
           submitScore(uid, user.name, user.bestScore, user.bestMaxDigits);
         }
-        setScreen("menu");
-      } else {
-        setScreen("name");
-      }
-    });
-  }, [ready, uid]);
+      }, 2000);
+    } else {
+      setScreen("name");
+    }
+  });
+}, [ready, uid]);
+
+ 
 
   function handleCreateUser() {
     var name = nameInput.trim();
