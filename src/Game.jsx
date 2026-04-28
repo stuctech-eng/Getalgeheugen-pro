@@ -280,14 +280,16 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   var n          = displayDigits || 1;
-  var availW     = Math.min(window.innerWidth, 480) - 40;
-  var gap        = 10;
-  var cardW      = Math.min(88, Math.floor((availW - gap * (n - 1)) / n));
-  var cardH      = Math.round(cardW * 1.18);
-  var cardFont   = Math.round(cardW * 0.58);
-  var slotW      = Math.min(66, Math.floor((availW - gap * (n - 1)) / n));
-  var slotH      = Math.round(slotW * 1.22);
-  var slotFont   = Math.round(slotW * 0.56);
+var availW     = Math.min(window.innerWidth, 480) - 40;
+var gap        = 10;
+var perRow     = n <= 5 ? n : Math.ceil(n / 2);
+var cardW      = Math.min(88, Math.floor((availW - gap * (perRow - 1)) / perRow));
+var cardH      = Math.round(cardW * 1.18);
+var cardFont   = Math.round(cardW * 0.58);
+var slotW      = Math.min(66, Math.floor((availW - gap * (perRow - 1)) / perRow));
+var slotH      = Math.round(slotW * 1.22);
+var slotFont   = Math.round(slotW * 0.56);
+
   var inputPct   = inputMaxTime > 0 ? (inputTimeLeft / inputMaxTime) * 100 : 0;
   var inputColor = inputPct > 60 ? "#22C55E" : inputPct > 30 ? "#EAB308" : "#EF4444";
   var curShowTime= getShowTime(displayDigits, diffMod);
