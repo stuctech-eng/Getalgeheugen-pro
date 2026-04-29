@@ -61,6 +61,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   const [inputTimeLeft, setInputTimeLeft] = useState(0);
   const [inputMaxTime, setInputMaxTime]   = useState(10000);
   const [scoreTotal, setScoreTotal]       = useState(0);
+  const [showMenu, setShowMenu]           = useState(false);
+  const [paused, setPaused]               = useState(false);
 
   const digitsRef      = useRef(START_DIGITS);
   const seqRef         = useRef("");
@@ -78,6 +80,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   const tmr            = useRef(null);
   const cdTmr          = useRef(null);
   const inputTmr       = useRef(null);
+  const pausedTimeRef  = useRef(0);
+  const phaseRef       = useRef("countdown");
 
   useEffect(function() {
     startRound(START_DIGITS);
@@ -88,6 +92,56 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
     };
   }, []);
 
+  function setPhaseSync(p) {
+    phaseRef.current = p;
+    setPhase(p);
+  }
+
+  function handleBackPress() {
+    // Pauzeer alles
+    clearTimeout(tmr.current);
+    clearInterval(cdTmr.current);
+    clearInterval(inputTmr.current);
+    // Bewaar resterende invoertijd
+    if (phaseRef.current === "input") {
+      var elapsed = Date.now() - inputStartRef.current;
+      var it = getInputTime(digitsRef.current);
+      pausedTimeRef.current = Math.max(0, it - elapsed);
+    }
+    setShowMenu(true);
+    setPaused(true);
+  }
+
+  function handleResume() {
+    setShowMenu(false);
+    setPaused(false);
+    // Hervat op basis van huidige fase
+    if (phaseRef.current === "input") {
+      // Hervat invoertimer met resterende tijd
+      var remaining = pausedTimeRef.current;
+      setInputTimeLeft(remaining);
+      inputStartRef.current = Date.now() - (getInputTime(digitsRef.current) - remaining);
+      inputTmr.current = setInterval(function() {
+        var el = Date.now() - inputStartRef.current;
+        var left = Math.max(0, getInputTime(digitsRef.current) - el);
+        setInputTimeLeft(left);
+        if (left <= 0) {
+          clearInterval(inputTmr.current);
+          handleResult(false, true);
+        }
+      }, 50);
+    } else {
+      // Andere fases -- gewoon nieuwe ronde starten
+      startRound();
+    }
+  }
+
+  function handleStop() {
+    setShowMenu(false);
+    setPaused(false);
+    onMenu();
+  }
+
   function startRound(nd) {
     clearTimeout(tmr.current);
     clearInterval(cdTmr.current);
@@ -95,7 +149,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
     var digits = (nd !== undefined) ? nd : digitsRef.current;
     digitsRef.current = digits;
     setDisplayDigits(digits);
-    setPhase("countdown");
+    setPhaseSync("countdown");
     setCdCount(3);
     setCdAnim(true);
     setInp("");
@@ -121,7 +175,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
           revealSequential(s);
         } else {
           audio.whoosh();
-          setPhase("show");
+          setPhaseSync("show");
           var st = getShowTime(digits, diffMod);
           tmr.current = setTimeout(function() { startInputPhase(); }, st);
         }
@@ -134,7 +188,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
     setInputMaxTime(it);
     setInputTimeLeft(it);
     inputStartRef.current = Date.now();
-    setPhase("input");
+    setPhaseSync("input");
     inputTmr.current = setInterval(function() {
       var elapsed = Date.now() - inputStartRef.current;
       var left = Math.max(0, it - elapsed);
@@ -147,7 +201,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   async function revealSequential(s) {
-    setPhase("show");
+    setPhaseSync("show");
     var st = getShowTime(digitsRef.current, diffMod);
     var perCard = Math.max(600, Math.floor(st / s.length));
     for (var i = 0; i < s.length; i++) {
@@ -180,7 +234,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   function handleResult(correct, timeout) {
-    setPhase("fb");
+    setPhaseSync("fb");
 
     if (correct) {
       var elapsed = Date.now() - inputStartRef.current;
@@ -280,16 +334,15 @@ export default function Game({ uid, player, onMenu, onGameOver, settings }) {
   }
 
   var n          = displayDigits || 1;
-var availW     = Math.min(window.innerWidth, 480) - 40;
-var gap        = 10;
-var perRow     = n <= 5 ? n : Math.ceil(n / 2);
-var cardW      = Math.min(88, Math.floor((availW - gap * (perRow - 1)) / perRow));
-var cardH      = Math.round(cardW * 1.18);
-var cardFont   = Math.round(cardW * 0.58);
-var slotW      = Math.min(66, Math.floor((availW - gap * (perRow - 1)) / perRow));
-var slotH      = Math.round(slotW * 1.22);
-var slotFont   = Math.round(slotW * 0.56);
-
+  var availW     = Math.min(window.innerWidth, 480) - 40;
+  var gap        = 10;
+  var perRow     = n <= 5 ? n : Math.ceil(n / 2);
+  var cardW      = Math.min(88, Math.floor((availW - gap * (perRow - 1)) / perRow));
+  var cardH      = Math.round(cardW * 1.18);
+  var cardFont   = Math.round(cardW * 0.58);
+  var slotW      = Math.min(66, Math.floor((availW - gap * (perRow - 1)) / perRow));
+  var slotH      = Math.round(slotW * 1.22);
+  var slotFont   = Math.round(slotW * 0.56);
   var inputPct   = inputMaxTime > 0 ? (inputTimeLeft / inputMaxTime) * 100 : 0;
   var inputColor = inputPct > 60 ? "#22C55E" : inputPct > 30 ? "#EAB308" : "#EF4444";
   var curShowTime= getShowTime(displayDigits, diffMod);
@@ -297,8 +350,50 @@ var slotFont   = Math.round(slotW * 0.56);
 
   return (
     <div className="screen game-screen">
+
+      {/* Popup menu */}
+      {showMenu && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:100,
+          background:"rgba(0,0,0,0.85)",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:16
+        }}>
+          <p style={{fontSize:20, fontWeight:700, opacity:0.6, marginBottom:8}}>
+            Wat wil je doen?
+          </p>
+          <button className="btn-primary" style={{maxWidth:260}}
+            onClick={handleResume}>
+            ▶ Verder spelen
+          </button>
+          <button className="btn-ghost" style={{maxWidth:260}}
+            onClick={handleStop}>
+            🚪 Stoppen
+          </button>
+        </div>
+      )}
+
+      {/* Pauze scherm */}
+      {paused && !showMenu && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:99,
+          background:"#0D1136",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:20
+        }}>
+          <div style={{fontSize:60}}>☕</div>
+          <div style={{fontSize:32, fontWeight:900, letterSpacing:4}}>PAUZE</div>
+          <p style={{opacity:0.4, fontSize:14}}>Tik op verder om door te gaan</p>
+          <button className="btn-primary" style={{maxWidth:260}}
+            onClick={handleResume}>
+            ▶ Verder spelen
+          </button>
+        </div>
+      )}
+
       <div className="game-header">
-        <button className="back-btn" onClick={function() { audio.plop(); onMenu(); }}>←</button>
+        <button className="back-btn"
+          onClick={handleBackPress}>←</button>
         <div className="player-name">👤 {player}</div>
         <div className="round-num">Ronde {round}</div>
       </div>

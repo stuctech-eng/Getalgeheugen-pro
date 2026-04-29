@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./auth/useAuth.js";
+import { db } from "./lib/firebase.js";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
@@ -10,7 +12,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "5.1.0";
+const VERSION = "5.2.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -38,6 +40,7 @@ export default function App() {
   const [nameError, setNameError] = useState("");
   const [settings, setSettings]   = useState(loadSettings);
   const [result, setResult]       = useState(null);
+  const [bestScore, setBestScore] = useState(null);
 
   useEffect(function() {
     if (!ready) return;
@@ -50,6 +53,19 @@ export default function App() {
       setScreen("name");
     }
   }, [ready, uid]);
+
+  // Beste score ophalen
+  useEffect(function() {
+    if (!uid) return;
+    getDocs(query(
+      collection(db, "scores"),
+      where("uid", "==", uid)
+    )).then(function(snap) {
+      if (!snap.empty) {
+        setBestScore(snap.docs[0].data());
+      }
+    });
+  }, [uid]);
 
   function handleNameSave() {
     var name = nameInput.trim();
@@ -67,6 +83,10 @@ export default function App() {
   }
 
   function handleGameOver(res) {
+    // Update beste score als nieuw record
+    if (!bestScore || res.score > bestScore.score) {
+      setBestScore({ score: res.score, maxDigits: res.maxDigits });
+    }
     setResult(res);
     setScreen("result");
   }
@@ -186,6 +206,11 @@ export default function App() {
       </div>
       <h1>Getal<span className="accent">Geheugen</span></h1>
       <p className="sub">Welkom, <span className="accent">{player}</span>!</p>
+      {bestScore && (
+        <div className="best-score-badge">
+          🏆 Beste: {bestScore.score} pts -- {bestScore.maxDigits} cijfers
+        </div>
+      )}
       <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
       <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
       <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
