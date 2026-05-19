@@ -243,3 +243,9 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
   color: #A855F7; text-align: center;
   width: 100%; max-width: 340px;
 }
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50% { opacity:0.5; }
+}
+
+
