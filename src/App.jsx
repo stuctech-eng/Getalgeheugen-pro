@@ -5,6 +5,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import Game from "./Game.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
+import ModeSelect from "./ModeSelect.jsx";
+import KleurSettings from "./KleurSettings.jsx";
 
 const COLORS = [
   ["#FF6B35","#FF8C42"],["#A855F7","#C084FC"],["#06B6D4","#22D3EE"],
@@ -12,7 +14,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "5.2.0";
+const VERSION = "5.3.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -31,16 +33,22 @@ function loadPlayer() {
   try { return localStorage.getItem("gg_player") || ""; } catch(e) { return ""; }
 }
 
+function loadLastMode() {
+  try { return localStorage.getItem("gg_lastmode") || "klassiek"; } catch(e) { return "klassiek"; }
+}
+
 export default function App() {
   const { uid, ready } = useAuth();
 
-  const [screen, setScreen]       = useState("loading");
-  const [player, setPlayer]       = useState(loadPlayer);
-  const [nameInput, setNameInput] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [settings, setSettings]   = useState(loadSettings);
-  const [result, setResult]       = useState(null);
-  const [bestScore, setBestScore] = useState(null);
+  const [screen, setScreen]         = useState("loading");
+  const [player, setPlayer]         = useState(loadPlayer);
+  const [nameInput, setNameInput]   = useState("");
+  const [nameError, setNameError]   = useState("");
+  const [settings, setSettings]     = useState(loadSettings);
+  const [result, setResult]         = useState(null);
+  const [bestScore, setBestScore]   = useState(null);
+  const [gameMode, setGameMode]     = useState(loadLastMode);
+  const [kleurOpts, setKleurOpts]   = useState(null);
 
   useEffect(function() {
     if (!ready) return;
@@ -54,16 +62,13 @@ export default function App() {
     }
   }, [ready, uid]);
 
-  // Beste score ophalen
   useEffect(function() {
     if (!uid) return;
     getDocs(query(
-      collection(db, "scores"),
+      collection(db, "scores_klassiek"),
       where("uid", "==", uid)
     )).then(function(snap) {
-      if (!snap.empty) {
-        setBestScore(snap.docs[0].data());
-      }
+      if (!snap.empty) setBestScore(snap.docs[0].data());
     });
   }, [uid]);
 
@@ -82,8 +87,17 @@ export default function App() {
     setScreen("menu");
   }
 
+  function handleModeSelect(mode) {
+    setGameMode(mode);
+    try { localStorage.setItem("gg_lastmode", mode); } catch(e) {}
+    if (mode === "kleur") {
+      setScreen("kleur_settings");
+    } else {
+      setScreen("game");
+    }
+  }
+
   function handleGameOver(res) {
-    // Update beste score als nieuw record
     if (!bestScore || res.score > bestScore.score) {
       setBestScore({ score: res.score, maxDigits: res.maxDigits });
     }
@@ -104,8 +118,7 @@ export default function App() {
       <p style={{opacity:0.6, textAlign:"center"}}>
         Verbinding mislukt.<br/>Controleer je internet.
       </p>
-      <button className="btn-primary"
-        onClick={function() { window.location.reload(); }}>
+      <button className="btn-primary" onClick={function() { window.location.reload(); }}>
         🔄 Opnieuw proberen
       </button>
     </div>
@@ -117,9 +130,9 @@ export default function App() {
         {["3","7","2","8"].map(function(n, i) {
           return (
             <div key={i} className="logo-card" style={{
-              background: "linear-gradient(135deg," + COLORS[i][0] + "," + COLORS[i][1] + ")",
-              transform: "rotate(" + [-12,0,-7,10][i] + "deg)",
-              left: i * 52
+              background:"linear-gradient(135deg,"+COLORS[i][0]+","+COLORS[i][1]+")",
+              transform:"rotate("+[-12,0,-7,10][i]+"deg)",
+              left:i*52
             }}>{n}</div>
           );
         })}
@@ -132,19 +145,36 @@ export default function App() {
           value={nameInput} maxLength={12}
           onChange={function(e) { setNameInput(e.target.value); setNameError(""); }}
           onKeyDown={function(e) { if (e.key === "Enter") handleNameSave(); }} />
-        {nameError && (
-          <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>
-        )}
-        <button className="btn-primary" onClick={handleNameSave}>
-          🚀 Spelen
-        </button>
+        {nameError && <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>}
+        <button className="btn-primary" onClick={handleNameSave}>🚀 Spelen</button>
       </div>
       <p className="version">v{VERSION}</p>
     </div>
   );
 
+  if (screen === "mode_select") return (
+    <ModeSelect
+      lastMode={gameMode}
+      onSelect={handleModeSelect}
+      onBack={function() { setScreen("menu"); }} />
+  );
+
+  if (screen === "kleur_settings") return (
+    <KleurSettings
+      onStart={function(opts) {
+        setKleurOpts(opts);
+        setScreen("game");
+      }}
+      onBack={function() { setScreen("mode_select"); }} />
+  );
+
   if (screen === "game") return (
-    <Game uid={uid} player={player} settings={settings}
+    <Game
+      uid={uid}
+      player={player}
+      settings={settings}
+      gameMode={gameMode}
+      kleurOpts={kleurOpts}
       onMenu={function() { setScreen("menu"); }}
       onGameOver={handleGameOver} />
   );
@@ -175,6 +205,12 @@ export default function App() {
       <h2 style={{fontSize:26, fontWeight:900, textAlign:"center"}}>
         Goed gedaan, {player}!
       </h2>
+      <div style={{
+        fontSize:13, opacity:0.5, marginTop:-8,
+        color: gameMode === "kleur" ? "#EC4899" : "#A855F7"
+      }}>
+        {gameMode === "kleur" ? "🎨 Kleur modus" : "🧠 Klassiek"}
+      </div>
       <div className="result-stats">
         <div className="stat-card">
           <div className="stat-num">{result && result.score}</div>
@@ -185,9 +221,9 @@ export default function App() {
           <div className="stat-label">Max cijfers</div>
         </div>
       </div>
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🔁 Opnieuw</button>
-      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost" onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
+      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>🔁 Opnieuw</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
     </div>
   );
 
@@ -197,9 +233,9 @@ export default function App() {
         {["3","7","2","8"].map(function(n, i) {
           return (
             <div key={i} className="logo-card" style={{
-              background: "linear-gradient(135deg," + COLORS[i][0] + "," + COLORS[i][1] + ")",
-              transform: "rotate(" + [-12,0,-7,10][i] + "deg)",
-              left: i * 52
+              background:"linear-gradient(135deg,"+COLORS[i][0]+","+COLORS[i][1]+")",
+              transform:"rotate("+[-12,0,-7,10][i]+"deg)",
+              left:i*52
             }}>{n}</div>
           );
         })}
@@ -211,9 +247,9 @@ export default function App() {
           🏆 Beste: {bestScore.score} pts -- {bestScore.maxDigits} cijfers
         </div>
       )}
-      <button className="btn-primary" onClick={function() { setScreen("game"); }}>🎮 Spelen</button>
-      <button className="btn-ghost" onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
-      <button className="btn-ghost" onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
+      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>🎮 Spelen</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
       <p className="version">v{VERSION}</p>
     </div>
   );

@@ -1,30 +1,41 @@
 import { db } from "./lib/firebase.js";
 import {
   collection, addDoc, getDocs,
-  query, where, deleteDoc, serverTimestamp
+  query, where, orderBy, limit,
+  onSnapshot, deleteDoc, serverTimestamp
 } from "firebase/firestore";
 
-// Sla score op -- gekoppeld aan uid
-export async function saveScore(uid, name, score, maxDigits) {
+// Collectie naam per modus
+export function getCollection(mode) {
+  var map = {
+    "klassiek":  "scores_klassiek",
+    "kleur":     "scores_kleur",
+    "flits":     "scores_flits",
+    "omgekeerd": "scores_omgekeerd",
+    "oplopend":  "scores_oplopend"
+  };
+  return map[mode] || "scores_klassiek";
+}
+
+export async function saveScore(uid, name, score, maxDigits, mode) {
   if (!uid || score <= 0) return;
+  var col = getCollection(mode || "klassiek");
   try {
-    // Check bestaande score voor dit device
     var snap = await getDocs(query(
-      collection(db, "scores"),
+      collection(db, col),
       where("uid", "==", uid)
     ));
-
     if (!snap.empty) {
       var old = snap.docs[0].data().score || 0;
-      if (score <= old) return; // Niet beter
-      await deleteDoc(snap.docs[0].ref); // Verwijder oude
+      if (score <= old) return;
+      await deleteDoc(snap.docs[0].ref);
     }
-
-    await addDoc(collection(db, "scores"), {
+    await addDoc(collection(db, col), {
       uid: uid,
       name: name,
       score: score,
       maxDigits: maxDigits,
+      mode: mode || "klassiek",
       createdAt: serverTimestamp()
     });
   } catch(e) {
@@ -32,26 +43,45 @@ export async function saveScore(uid, name, score, maxDigits) {
   }
 }
 
-// Naam updaten op scorebord
+export function subscribeScores(mode, callback) {
+  var col = getCollection(mode || "klassiek");
+  var q = query(
+    collection(db, col),
+    orderBy("score", "desc"),
+    limit(20)
+  );
+  return onSnapshot(q, function(snap) {
+    var data = snap.docs.map(function(d) {
+      return Object.assign({ id: d.id }, d.data());
+    });
+    callback(data);
+  }, function(err) {
+    console.error("subscribeScores failed:", err);
+    callback([]);
+  });
+}
+
 export async function updateScoreName(uid, newName) {
-  try {
-    var snap = await getDocs(query(
-      collection(db, "scores"),
-      where("uid", "==", uid)
-    ));
-    if (!snap.empty) {
-      var ref = snap.docs[0].ref;
-      var data = snap.docs[0].data();
-      await deleteDoc(ref);
-      await addDoc(collection(db, "scores"), {
-        uid: uid,
-        name: newName,
-        score: data.score,
-        maxDigits: data.maxDigits,
-        createdAt: data.createdAt
-      });
-    }
-  } catch(e) {
-    console.error("updateScoreName failed:", e);
+  var cols = ["scores_klassiek","scores_kleur","scores_flits","scores_omgekeerd","scores_oplopend"];
+  for (var i = 0; i < cols.length; i++) {
+    try {
+      var snap = await getDocs(query(
+        collection(db, cols[i]),
+        where("uid", "==", uid)
+      ));
+      if (!snap.empty) {
+        var ref  = snap.docs[0].ref;
+        var data = snap.docs[0].data();
+        await deleteDoc(ref);
+        await addDoc(collection(db, cols[i]), {
+          uid:       uid,
+          name:      newName,
+          score:     data.score,
+          maxDigits: data.maxDigits,
+          mode:      data.mode,
+          createdAt: data.createdAt
+        });
+      }
+    } catch(e) { console.error("updateScoreName failed:", e); }
   }
 }
