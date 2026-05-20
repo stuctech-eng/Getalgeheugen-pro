@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Score Migratie</title>
+  <style>
+    body {
+      background: #0D1136;
+      color: #fff;
+      font-family: 'Trebuchet MS', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h1 { color: #A855F7; margin-bottom: 8px; }
+    p { opacity: 0.6; margin-bottom: 24px; text-align: center; }
+    button {
+      background: #A855F7;
+      color: #fff;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 24px;
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    .log {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 2;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .ok  { color: #22C55E; }
+    .err { color: #F43F5E; }
+    .inf { color: #A855F7; }
+  </style>
+</head>
+<body>
+  <h1>🔄 Score Migratie</h1>
+  <p>Zet scores over van <b>scores</b> naar <b>scores_klassiek</b></p>
+  <button id="btn" onclick="migrate()">🚀 Start migratie</button>
+  <div class="log" id="log"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, addDoc,
+      query, where, deleteDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+      apiKey: "AIzaSyDCQBfeCQZnES6ix4YcMoBxZPeF8gn7eF4",
+      authDomain: "getalgeheugen.firebaseapp.com",
+      projectId: "getalgeheugen",
+      storageBucket: "getalgeheugen.firebasestorage.app",
+      messagingSenderId: "140215190929",
+      appId: "1:140215190929:web:67efac98ec28a5ec3f8630"
+    });
+
+    const db = getFirestore(app);
+
+    function log(msg, cls) {
+      var div = document.getElementById("log");
+      div.innerHTML += '<div class="'+(cls||"inf")+'">'+msg+'</div>';
+      div.scrollTop = div.scrollHeight;
+    }
+
+    window.migrate = async function() {
+      var btn = document.getElementById("btn");
+      btn.disabled = true;
+      log("🔍 Ophalen van scores collectie...");
+
+      try {
+        var snap = await getDocs(collection(db, "scores"));
+        log("📦 " + snap.docs.length + " scores gevonden");
+
+        if (snap.docs.length === 0) {
+          log("✅ Niets te migreren!", "ok");
+          btn.disabled = false;
+          return;
+        }
+
+        var migrated = 0;
+        var skipped  = 0;
+
+        for (var i = 0; i < snap.docs.length; i++) {
+          var doc = snap.docs[i];
+          var data = doc.data();
+
+          log("→ Verwerken: " + data.name + " (" + data.score + " pts)");
+
+          // Check of al bestaat in scores_klassiek
+          var existing = await getDocs(query(
+            collection(db, "scores_klassiek"),
+            where("uid", "==", data.uid)
+          ));
+
+          if (!existing.empty) {
+            var oldScore = existing.docs[0].data().score || 0;
+            if (data.score <= oldScore) {
+              log("⏭ Al beter in klassiek -- overgeslagen", "inf");
+              skipped++;
+              continue;
+            }
+            // Verwijder oude
+            await deleteDoc(existing.docs[0].ref);
+          }
+
+          // Kopieer naar scores_klassiek
+          await addDoc(collection(db, "scores_klassiek"), {
+            uid:       data.uid || "unknown",
+            name:      data.name || "Speler",
+            score:     data.score || 0,
+            maxDigits: data.maxDigits || 3,
+            mode:      "klassiek",
+            createdAt: data.createdAt || serverTimestamp()
+          });
+
+          log("✅ " + data.name + " → scores_klassiek", "ok");
+          migrated++;
+        }
+
+        log("", "");
+        log("🎉 Klaar! " + migrated + " overgezet, " + skipped + " overgeslagen", "ok");
+
+      } catch(e) {
+        log("❌ Fout: " + e.message, "err");
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
