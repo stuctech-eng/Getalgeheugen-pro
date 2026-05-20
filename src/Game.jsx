@@ -47,7 +47,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var isKleur     = gameMode === "kleur";
   var kleurFactor = (kleurOpts && kleurOpts.factor) || 1.0;
   var toonCijfers = !isKleur || (kleurOpts && kleurOpts.cijfers);
-  var toonLegenda = isKleur && kleurOpts && kleurOpts.legenda;
 
   const [phase, setPhase]                 = useState("countdown");
   const [cdCount, setCdCount]             = useState(3);
@@ -219,7 +218,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
     audio.tapNote(inpRef.current.length, digitsRef.current);
     vibrate();
     setLitKey(k);
-    setTimeout(function() { setLitKey(null); }, 180);
+    setTimeout(function() { setLitKey(null); }, 200);
     var next = [...inpRef.current, k];
     inpRef.current = next;
     setInp(next);
@@ -250,7 +249,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
       speedBonusRef.current += sb;
       var stb = Math.round(bp * (streakMult - 1));
       streakBonusRef.current += stb;
-      var modeMult  = showMode === "sequential" ? 1.5 : 1.0;
+      var modeMult   = showMode === "sequential" ? 1.5 : 1.0;
       var roundScore = Math.round((bp + sb + iBonus + stb) * modeMult * kleurFactor);
       scoreTotalRef.current += roundScore;
       setScoreTotal(scoreTotalRef.current);
@@ -324,19 +323,17 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
     }
   }
 
-  // Kaarten in rijen van 3
   var cards = seq.split("");
   var cardRows = [];
   for (var i = 0; i < cards.length; i += 3) {
     cardRows.push(cards.slice(i, i + 3));
   }
 
-  var availW    = Math.min(window.innerWidth, 480) - 40;
-  var cardW     = Math.min(110, Math.floor((availW - 20) / 3));
-  var cardFont  = Math.round(cardW * 0.52);
-  var inputPct  = inputMaxTime > 0 ? (inputTimeLeft / inputMaxTime) * 100 : 0;
+  var availW     = Math.min(window.innerWidth, 480) - 40;
+  var cardW      = Math.min(110, Math.floor((availW - 20) / 3));
+  var cardFont   = Math.round(cardW * 0.52);
+  var inputPct   = inputMaxTime > 0 ? (inputTimeLeft / inputMaxTime) * 100 : 0;
   var timerColor = inputPct > 60 ? "#22C55E" : inputPct > 30 ? "#EAB308" : "#EF4444";
-  var isLowTimer = inputPct < 30;
   var curShowTime = getShowTime(displayDigits, diffMod);
   var speedColor  = curShowTime < 2000 ? "#EF4444" : curShowTime < 3000 ? "#EAB308" : "#22C55E";
   var streakSize  = streak >= 7 ? 24 : streak >= 5 ? 20 : streak >= 3 ? 17 : 14;
@@ -377,7 +374,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           background:"rgba(168,85,247,0.15)"
         }}>
           <div style={{fontSize:80}}>⬆️</div>
-          <div style={{fontSize:36, fontWeight:900, color:"#A855F7", textShadow:"0 0 40px #A855F7"}}>LEVEL UP!</div>
+          <div style={{fontSize:36, fontWeight:900, color:"#A855F7",
+            textShadow:"0 0 40px #A855F7"}}>LEVEL UP!</div>
           <div style={{fontSize:18, opacity:0.6, marginTop:8}}>{displayDigits + 1} cijfers</div>
         </div>
       )}
@@ -409,27 +407,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         })}
         <span className="streak-hint">{wins}/{winsUp} voor level</span>
       </div>
-
-      {/* Legenda kleur modus */}
-      {toonLegenda && phase !== "countdown" && (
-        <div style={{
-          display:"flex", flexWrap:"wrap", gap:6,
-          justifyContent:"center", padding:"0 8px"
-        }}>
-          {Object.entries(DIGIT_COLORS).map(function(entry) {
-            return (
-              <div key={entry[0]} style={{
-                display:"flex", alignItems:"center", gap:4,
-                background:entry[1]+"22", border:"1px solid "+entry[1]+"44",
-                borderRadius:8, padding:"3px 8px"
-              }}>
-                <div style={{width:10, height:10, borderRadius:"50%", background:entry[1]}}/>
-                <span style={{fontSize:12, fontWeight:700}}>{entry[0]}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Display area */}
       <div className="display-area">
@@ -471,7 +448,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* TOON -- tegelijk */}
+        {/* TOON -- tegelijk -- altijd volle kleuren */}
         {phase === "show" && showMode === "together" && (
           <div style={{
             display:"flex", flexDirection:"column",
@@ -537,11 +514,11 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* INVOER */}
+        {/* INVOER -- altijd volle kleuren */}
         {(phase === "input" || phase === "fb") && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Bolletjes */}
+            {/* Bolletjes voortgang */}
             <div style={{display:"flex", gap:8, justifyContent:"center"}}>
               {Array.from({length:displayDigits}, function(_, i) {
                 var filled = i < inp.length;
@@ -573,40 +550,37 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}/>
             </div>
 
-            {/* Numpad */}
+            {/* Numpad -- volle kleuren + wit flash bij tikken */}
             <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
               {nums.map(function(row, ri) {
                 return (
                   <div key={ri} style={{display:"flex", gap:8, flex:1}}>
                     {row.map(function(k, ki) {
                       if (k === "") return <div key={ki} style={{flex:1}}/>;
-                      var isDel  = k === "del";
-                      var color  = isDel ? null : DIGIT_COLORS[k];
-                      var isLit  = litKey === k;
-                      var inInp  = inp.includes(k);
-                      var isOk   = flash==="ok"  && !isDel && inInp;
-                      var isBad  = flash==="bad" && !isDel && inInp;
+                      var isDel = k === "del";
+                      var color = isDel ? null : DIGIT_COLORS[k];
+                      var isLit = litKey === k;
+
                       return (
                         <button key={ki} onClick={function(){ tap(k); }} style={{
                           flex:1, aspectRatio:"1/1",
                           borderRadius:20, border:"none", cursor:"pointer",
-                          fontSize: toonCijfers ? 30 : 14,
+                          fontSize: toonCijfers ? 30 : 4,
                           fontWeight:900,
-                          background: isDel ? "rgba(239,68,68,0.15)"
-                            : isOk  ? color
-                            : isBad ? "#EF4444"
+                          // Volle kleur altijd -- wit flash bij tikken
+                          background: isDel
+                            ? "rgba(239,68,68,0.2)"
+                            : isLit ? "#ffffff"
+                            : color,
+                          color: isDel ? "#F87171"
                             : isLit ? color
-                            : color+"55",
-                          color: isDel ? "#F87171" : "#fff",
+                            : "#fff",
                           boxShadow: isLit
-                            ? "0 0 30px "+color+", 0 0 60px "+color+"44"
-                            : isOk  ? "0 0 30px "+color
-                            : isBad ? "0 0 30px #EF4444"
-                            : isLowTimer ? "0 0 12px #EF444433"
+                            ? "0 0 40px #ffffff88, 0 0 60px "+color+"66"
                             : isDel ? "none"
-                            : "0 0 15px "+color+"33",
+                            : "0 0 20px "+color+"55, inset 0 1px 0 rgba(255,255,255,0.15)",
                           transform: isLit ? "scale(0.91)" : "scale(1)",
-                          transition:"all 0.12s",
+                          transition: isLit ? "none" : "transform 0.15s",
                           display:"flex", alignItems:"center", justifyContent:"center"
                         }}>
                           {isDel ? "⌫" : toonCijfers ? k : ""}
