@@ -4,6 +4,7 @@ import { subscribeScores } from "./firebase.js";
 const MODES = [
   { id:"klassiek",  emoji:"🧠", naam:"Klassiek" },
   { id:"kleur",     emoji:"🎨", naam:"Kleur" },
+  { id:"flits",     emoji:"⚡", naam:"Flits" },
 ];
 
 export default function Leaderboard({ uid, onBack }) {
@@ -46,7 +47,7 @@ export default function Leaderboard({ uid, onBack }) {
 
       {loading && <p className="loading">Laden...</p>}
       {!loading && scores.length === 0 && (
-        <p className="loading">Nog geen scores -- speel een potje!</p>
+        <p className="loading">Nog geen scores — speel een potje!</p>
       )}
 
       <div className="board-wrap">

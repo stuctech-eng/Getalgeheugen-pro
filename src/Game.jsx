@@ -13,7 +13,8 @@ const CD_GLOW   = ["rgba(239,68,68,0.4)","rgba(249,115,22,0.4)","rgba(34,197,94,
 const TOTAL_LIVES = 3;
 const START_DIGITS = 3;
 
-function getShowTime(digits, diffMod) {
+function getShowTime(digits, diffMod, mode) {
+  if (mode === "flits") return 500;
   var base = 3000 + (digits - 4) * 300;
   base = Math.max(1000, base);
   return Math.round(base * (1 + diffMod));
@@ -45,7 +46,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var winsUp      = (settings && settings.winsUp) || 3;
   var showMode    = (settings && settings.showMode) || "together";
   var isKleur     = gameMode === "kleur";
+  var isFlits     = gameMode === "flits";
   var kleurFactor = (kleurOpts && kleurOpts.factor) || 1.0;
+  var modeFactor  = isFlits ? 2.5 : 1.0;
   var toonCijfers = !isKleur || (kleurOpts && kleurOpts.cijfers);
 
   const [phase, setPhase]                 = useState("countdown");
@@ -172,7 +175,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         } else {
           audio.whoosh();
           setPhaseSync("show");
-          tmr.current = setTimeout(function() { startInputPhase(); }, getShowTime(digits, diffMod));
+          tmr.current = setTimeout(function() { startInputPhase(); }, getShowTime(digits, diffMod, gameMode));
         }
       }
     }, 800);
@@ -194,8 +197,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
 
   async function revealSequential(s) {
     setPhaseSync("show");
-    var st = getShowTime(digitsRef.current, diffMod);
-    var perCard = Math.max(600, Math.floor(st / s.length));
+    var st = getShowTime(digitsRef.current, diffMod, gameMode);
+    var perCard = Math.max(300, Math.floor(st / s.length));
     for (var i = 0; i < s.length; i++) {
       setActiveIdx(i);
       audio.pop();
@@ -203,7 +206,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
       await new Promise(function(r) { setTimeout(r, perCard); });
     }
     setActiveIdx(-1);
-    await new Promise(function(r) { setTimeout(r, 200); });
+    await new Promise(function(r) { setTimeout(r, 100); });
     startInputPhase();
   }
 
@@ -250,7 +253,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
       var stb = Math.round(bp * (streakMult - 1));
       streakBonusRef.current += stb;
       var modeMult   = showMode === "sequential" ? 1.5 : 1.0;
-      var roundScore = Math.round((bp + sb + iBonus + stb) * modeMult * kleurFactor);
+      var roundScore = Math.round((bp + sb + iBonus + stb) * modeMult * kleurFactor * modeFactor);
       scoreTotalRef.current += roundScore;
       setScoreTotal(scoreTotalRef.current);
       maxDRef.current = Math.max(maxDRef.current, digitsRef.current);
@@ -334,13 +337,11 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var cardFont   = Math.round(cardW * 0.52);
   var inputPct   = inputMaxTime > 0 ? (inputTimeLeft / inputMaxTime) * 100 : 0;
   var timerColor = inputPct > 60 ? "#22C55E" : inputPct > 30 ? "#EAB308" : "#EF4444";
-  var curShowTime = getShowTime(displayDigits, diffMod);
-  var speedColor  = curShowTime < 2000 ? "#EF4444" : curShowTime < 3000 ? "#EAB308" : "#22C55E";
+  var curShowTime = getShowTime(displayDigits, diffMod, gameMode);
+  var speedColor  = isFlits ? "#EF4444" : curShowTime < 2000 ? "#EF4444" : curShowTime < 3000 ? "#EAB308" : "#22C55E";
   var streakSize  = streak >= 7 ? 24 : streak >= 5 ? 20 : streak >= 3 ? 17 : 14;
   var cdColor = CD_COLORS[cdCount - 1] || "#22C55E";
   var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
-
-  // Telefoon layout -- lege plek links, 0 midden, delete rechts
   var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["","0","del"]];
 
   return (
@@ -394,7 +395,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         <span className="level-label">Niveau</span>
         <div className="digit-bubble">{displayDigits}</div>
         <span className="level-label">cijfers</span>
-        <div className="speed-badge" style={{color:speedColor}}>⚡ {(curShowTime/1000).toFixed(1)}s</div>
+        <div className="speed-badge" style={{color:speedColor}}>
+          {isFlits ? "⚡ 0.5s" : "⚡ "+(curShowTime/1000).toFixed(1)+"s"}
+        </div>
         <span className="score-badge">🏆 {scoreTotal}</span>
         {streak >= 3 && <span style={{fontSize:streakSize, transition:"font-size 0.3s"}}>🔥{streak}</span>}
       </div>
@@ -433,7 +436,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}>{cdCount}</div>
             </div>
             <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-              Klaarmaken...
+              {isFlits ? "Flits modus! ⚡" : "Klaarmaken..."}
             </div>
             <div style={{display:"flex", gap:8}}>
               {[3,2,1].map(function(n) {
@@ -450,7 +453,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* TOON -- tegelijk */}
+        {/* TOON — tegelijk */}
         {phase === "show" && showMode === "together" && (
           <div style={{
             display:"flex", flexDirection:"column",
@@ -470,7 +473,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                         fontSize:cardFont, fontWeight:900, color:"#fff",
                         boxShadow:"0 0 30px "+color+"88, 0 8px 24px rgba(0,0,0,0.4)",
                         border:"2px solid "+color+"aa",
-                        animation:"popIn 0.25s ease "+((ri*3+ci)*0.08)+"s backwards"
+                        animation:"popIn 0.15s ease "+((ri*3+ci)*0.04)+"s backwards"
                       }}>
                         {isKleur ? "" : d}
                       </div>
@@ -482,7 +485,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* TOON -- één voor één */}
+        {/* TOON — één voor één */}
         {phase === "show" && showMode === "sequential" && (
           <div style={{
             display:"flex", flexDirection:"column",
@@ -504,7 +507,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                         fontSize:cardFont, fontWeight:900, color:"#fff",
                         boxShadow: isActive ? "0 0 40px "+color+"88" : "none",
                         opacity: isActive ? 1 : 0.15,
-                        transition:"all 0.2s"
+                        transition:"all 0.15s"
                       }}>
                         {isActive ? (isKleur ? "" : d) : ""}
                       </div>
@@ -520,7 +523,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         {(phase === "input" || phase === "fb") && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Timer -- bovenaan */}
+            {/* Timer bovenaan */}
             <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
               <div style={{
                 height:"100%", width:inputPct+"%",
@@ -530,7 +533,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}/>
             </div>
 
-            {/* Bolletjes voortgang -- onder timer */}
+            {/* Bolletjes */}
             <div style={{display:"flex", gap:8, justifyContent:"center"}}>
               {Array.from({length:displayDigits}, function(_, i) {
                 var filled = i < inp.length;
@@ -552,33 +555,26 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               })}
             </div>
 
-            {/* Numpad -- telefoon layout */}
+            {/* Numpad */}
             <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
               {nums.map(function(row, ri) {
                 return (
                   <div key={ri} style={{display:"flex", gap:8, flex:1}}>
                     {row.map(function(k, ki) {
-                      // Lege plek
                       if (k === "") return <div key={ki} style={{flex:1}}/>;
-
                       var isDel = k === "del";
                       var color = isDel ? null : DIGIT_COLORS[k];
                       var isLit = litKey === k;
-
                       return (
                         <button key={ki} onClick={function(){ tap(k); }} style={{
                           flex:1, aspectRatio:"1/1",
                           borderRadius:20, border:"none", cursor:"pointer",
                           fontSize: isDel ? 24 : toonCijfers ? 30 : 4,
                           fontWeight:900,
-                          // Delete = wit, cijfers = volle kleur
                           background: isDel
-                            ? isLit ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"
-                            : isLit ? "#ffffff"
-                            : color,
-                          color: isDel
-                            ? "#fff"
-                            : isLit ? color : "#fff",
+                            ? isLit ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)"
+                            : isLit ? "#ffffff" : color,
+                          color: isDel ? "#fff" : isLit ? color : "#fff",
                           boxShadow: isDel
                             ? isLit ? "0 0 20px rgba(255,255,255,0.4)" : "none"
                             : isLit

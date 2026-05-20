@@ -11,14 +11,13 @@ const MODES = [
     id: "kleur",
     emoji: "🎨",
     naam: "Kleur",
-    desc: "Onthoud de kleuren"
+    desc: "Onthoud de kleuren — ×1.0 tot ×1.5 punten"
   },
   {
     id: "flits",
     emoji: "⚡",
     naam: "Flits",
-    desc: "Super korte kijktijd",
-    soon: true
+    desc: "0.5 seconde kijktijd — ×2.5 punten"
   },
   {
     id: "omgekeerd",
