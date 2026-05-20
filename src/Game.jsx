@@ -5,7 +5,7 @@ import { saveScore } from "./firebase.js";
 const DIGIT_COLORS = {
   "0":"#14B8A6","1":"#FF6B35","2":"#A855F7","3":"#06B6D4",
   "4":"#22C55E","5":"#EC4899","6":"#EAB308","7":"#3B82F6",
-  "8":"#F43F5E","9":"#8B5CF6"
+  "8":"#F43F5E","9":"#D946EF"
 };
 
 const CD_COLORS = ["#EF4444","#F97316","#22C55E"];
@@ -339,7 +339,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var streakSize  = streak >= 7 ? 24 : streak >= 5 ? 20 : streak >= 3 ? 17 : 14;
   var cdColor = CD_COLORS[cdCount - 1] || "#22C55E";
   var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
-  var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["del","0",""]];
+
+  // Telefoon layout -- lege plek links, 0 midden, delete rechts
+  var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["","0","del"]];
 
   return (
     <div className="screen game-screen" style={{
@@ -448,7 +450,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* TOON -- tegelijk -- altijd volle kleuren */}
+        {/* TOON -- tegelijk */}
         {phase === "show" && showMode === "together" && (
           <div style={{
             display:"flex", flexDirection:"column",
@@ -514,11 +516,21 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           </div>
         )}
 
-        {/* INVOER -- altijd volle kleuren */}
+        {/* INVOER */}
         {(phase === "input" || phase === "fb") && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Bolletjes voortgang */}
+            {/* Timer -- bovenaan */}
+            <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
+              <div style={{
+                height:"100%", width:inputPct+"%",
+                background:timerColor,
+                boxShadow:"0 0 10px "+timerColor,
+                borderRadius:3, transition:"width 0.05s linear, background 0.3s"
+              }}/>
+            </div>
+
+            {/* Bolletjes voortgang -- onder timer */}
             <div style={{display:"flex", gap:8, justifyContent:"center"}}>
               {Array.from({length:displayDigits}, function(_, i) {
                 var filled = i < inp.length;
@@ -540,23 +552,15 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               })}
             </div>
 
-            {/* Timer */}
-            <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
-              <div style={{
-                height:"100%", width:inputPct+"%",
-                background:timerColor,
-                boxShadow:"0 0 10px "+timerColor,
-                borderRadius:3, transition:"width 0.05s linear, background 0.3s"
-              }}/>
-            </div>
-
-            {/* Numpad -- volle kleuren + wit flash bij tikken */}
+            {/* Numpad -- telefoon layout */}
             <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
               {nums.map(function(row, ri) {
                 return (
                   <div key={ri} style={{display:"flex", gap:8, flex:1}}>
                     {row.map(function(k, ki) {
+                      // Lege plek
                       if (k === "") return <div key={ki} style={{flex:1}}/>;
+
                       var isDel = k === "del";
                       var color = isDel ? null : DIGIT_COLORS[k];
                       var isLit = litKey === k;
@@ -565,19 +569,20 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                         <button key={ki} onClick={function(){ tap(k); }} style={{
                           flex:1, aspectRatio:"1/1",
                           borderRadius:20, border:"none", cursor:"pointer",
-                          fontSize: toonCijfers ? 30 : 4,
+                          fontSize: isDel ? 24 : toonCijfers ? 30 : 4,
                           fontWeight:900,
-                          // Volle kleur altijd -- wit flash bij tikken
+                          // Delete = wit, cijfers = volle kleur
                           background: isDel
-                            ? "rgba(239,68,68,0.2)"
+                            ? isLit ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"
                             : isLit ? "#ffffff"
                             : color,
-                          color: isDel ? "#F87171"
-                            : isLit ? color
-                            : "#fff",
-                          boxShadow: isLit
+                          color: isDel
+                            ? "#fff"
+                            : isLit ? color : "#fff",
+                          boxShadow: isDel
+                            ? isLit ? "0 0 20px rgba(255,255,255,0.4)" : "none"
+                            : isLit
                             ? "0 0 40px #ffffff88, 0 0 60px "+color+"66"
-                            : isDel ? "none"
                             : "0 0 20px "+color+"55, inset 0 1px 0 rgba(255,255,255,0.15)",
                           transform: isLit ? "scale(0.91)" : "scale(1)",
                           transition: isLit ? "none" : "transform 0.15s",
