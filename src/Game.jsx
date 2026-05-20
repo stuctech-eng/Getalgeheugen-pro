@@ -69,6 +69,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   const [inputMaxTime, setInputMaxTime]   = useState(10000);
   const [scoreTotal, setScoreTotal]       = useState(0);
   const [showLevelUp, setShowLevelUp]     = useState(false);
+  const [nextDigits, setNextDigits]       = useState(START_DIGITS + 1);
   const [showMenu, setShowMenu]           = useState(false);
 
   const digitsRef      = useRef(START_DIGITS);
@@ -279,11 +280,13 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           audio.levelUp();
           winsRef.current = 0;
           setWins(0);
+          var nd = digitsRef.current + 1;
+          setNextDigits(nd);
           setShowLevelUp(true);
           setTimeout(function() {
             setShowLevelUp(false);
-            startRound(digitsRef.current + 1);
-          }, 1200);
+            startRound(nd);
+          }, 1800);
         } else {
           startRound();
         }
@@ -368,18 +371,26 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         </div>
       )}
 
-      {/* Level up */}
+      {/* Level up — donker scherm */}
       {showLevelUp && (
         <div style={{
           position:"fixed", inset:0, zIndex:99,
           display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center",
-          background:"rgba(168,85,247,0.15)"
+          alignItems:"center", justifyContent:"center", gap:8,
+          background:"rgba(0,0,0,0.85)"
         }}>
-          <div style={{fontSize:80}}>⬆️</div>
-          <div style={{fontSize:36, fontWeight:900, color:"#A855F7",
-            textShadow:"0 0 40px #A855F7"}}>LEVEL UP!</div>
-          <div style={{fontSize:18, opacity:0.6, marginTop:8}}>{displayDigits + 1} cijfers</div>
+          <div style={{fontSize:100}}>⬆️</div>
+          <div style={{
+            fontSize:48, fontWeight:900, color:"#A855F7",
+            textShadow:"0 0 40px #A855F7, 0 0 80px #A855F7",
+            letterSpacing:4
+          }}>LEVEL UP!</div>
+          <div style={{
+            fontSize:22, marginTop:8,
+            color:"#22C55E",
+            textShadow:"0 0 20px #22C55E",
+            fontWeight:700
+          }}>Nu {nextDigits} cijfers! 🎯</div>
         </div>
       )}
 
@@ -436,7 +447,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}>{cdCount}</div>
             </div>
             <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-              {isFlits ? "Flits modus! ⚡" : "Klaarmaken..."}
+              {isFlits ? "⚡ Flits modus!" : "Klaarmaken..."}
             </div>
             <div style={{display:"flex", gap:8}}>
               {[3,2,1].map(function(n) {
