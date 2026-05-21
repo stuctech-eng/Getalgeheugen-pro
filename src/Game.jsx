@@ -68,7 +68,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   const [inputTimeLeft, setInputTimeLeft] = useState(0);
   const [inputMaxTime, setInputMaxTime]   = useState(10000);
   const [scoreTotal, setScoreTotal]       = useState(0);
-  const [showLevelUp, setShowLevelUp]     = useState(false);
+  // Level up: null | "fading" | "showing"
+  const [levelUpPhase, setLevelUpPhase]   = useState(null);
   const [nextDigits, setNextDigits]       = useState(START_DIGITS + 1);
   const [showMenu, setShowMenu]           = useState(false);
 
@@ -282,11 +283,21 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           setWins(0);
           var nd = digitsRef.current + 1;
           setNextDigits(nd);
-          setShowLevelUp(true);
+
+          // Fase 1: fade naar donker
+          setLevelUpPhase("fading");
+
+          // Fase 2: toon level up tekst
           setTimeout(function() {
-            setShowLevelUp(false);
+            setLevelUpPhase("showing");
+          }, 500);
+
+          // Fase 3: verder spelen
+          setTimeout(function() {
+            setLevelUpPhase(null);
             startRound(nd);
-          }, 1800);
+          }, 2800);
+
         } else {
           startRound();
         }
@@ -357,6 +368,40 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
       transition:"background 0.2s"
     }}>
 
+      {/* Level up overlay — fade + show */}
+      {levelUpPhase && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:99,
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:8,
+          // Fade in donker
+          background:"rgba(0,0,0,0.92)",
+          opacity: levelUpPhase === "fading" ? 0 : 1,
+          transition:"opacity 0.5s ease"
+        }}>
+          <div style={{
+            display:"flex", flexDirection:"column",
+            alignItems:"center", gap:12,
+            opacity: levelUpPhase === "showing" ? 1 : 0,
+            transform: levelUpPhase === "showing" ? "scale(1)" : "scale(0.8)",
+            transition:"opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s"
+          }}>
+            <div style={{fontSize:100}}>⬆️</div>
+            <div style={{
+              fontSize:48, fontWeight:900, color:"#A855F7",
+              textShadow:"0 0 40px #A855F7, 0 0 80px #A855F7",
+              letterSpacing:4
+            }}>LEVEL UP!</div>
+            <div style={{
+              fontSize:22, marginTop:4,
+              color:"#22C55E",
+              textShadow:"0 0 20px #22C55E",
+              fontWeight:700
+            }}>Nu {nextDigits} cijfers! 🎯</div>
+          </div>
+        </div>
+      )}
+
       {/* Pauze popup */}
       {showMenu && (
         <div style={{
@@ -368,29 +413,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           <p style={{fontSize:20, fontWeight:700, opacity:0.6, marginBottom:8}}>Wat wil je doen?</p>
           <button className="btn-primary" style={{maxWidth:260}} onClick={handleResume}>▶ Verder spelen</button>
           <button className="btn-ghost"   style={{maxWidth:260}} onClick={handleStop}>🚪 Stoppen</button>
-        </div>
-      )}
-
-      {/* Level up — donker scherm */}
-      {showLevelUp && (
-        <div style={{
-          position:"fixed", inset:0, zIndex:99,
-          display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center", gap:8,
-          background:"rgba(0,0,0,0.85)"
-        }}>
-          <div style={{fontSize:100}}>⬆️</div>
-          <div style={{
-            fontSize:48, fontWeight:900, color:"#A855F7",
-            textShadow:"0 0 40px #A855F7, 0 0 80px #A855F7",
-            letterSpacing:4
-          }}>LEVEL UP!</div>
-          <div style={{
-            fontSize:22, marginTop:8,
-            color:"#22C55E",
-            textShadow:"0 0 20px #22C55E",
-            fontWeight:700
-          }}>Nu {nextDigits} cijfers! 🎯</div>
         </div>
       )}
 
