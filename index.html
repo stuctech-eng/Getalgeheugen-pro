@@ -8,44 +8,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="GetalGeheugen">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <style>
-    #root { display: none !important; }
-    #pwa-overlay {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 100vh; text-align: center; font-family: sans-serif;
-      padding: 20px; background-color: #121212; color: #ffffff; box-sizing: border-box;
-    }
-    .box {
-      background: #1e1e1e; border: 1px solid #333; border-radius: 12px;
-      padding: 20px; max-width: 340px; margin-top: 20px; text-align: left;
-    }
-    h2 { margin-top: 0; color: #00ff88; }
-    p { color: #b3b3b3; line-height: 1.5; }
-    strong { color: #ffffff; }
-    hr { border: 0; border-top: 1px solid #333; margin: 15px 0; }
-    @media (display-mode: standalone) {
-      #root { display: block !important; }
-      #pwa-overlay { display: none !important; }
-    }
-  </style>
-  <script>
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (!isPWA) {
-      console.warn("Geopend via link. React geblokkeerd.");
-      window.stop();
-    }
-  </script>
 </head>
 <body>
-  <div id="pwa-overlay">
-    <h2>📱 App Installeren Vereist</h2>
-    <p>Om in te loggen en je scores op te slaan, moet je de app eerst toevoegen aan je beginscherm.</p>
-    <div class="box">
-      <p><strong>Apple iOS (Safari):</strong><br> Tik onderaan op het <strong>'Deel'-icoon</strong> (vierkantje met pijltje) en kies <strong>'Zet op beginscherm'</strong>.</p>
-      <hr>
-      <p><strong>Android (Chrome):</strong><br> Tik rechtsboven op de <strong>drie stipjes</strong> en kies <strong>'App installeren'</strong> of 'Toevoegen aan startscherm'.</p>
-    </div>
-  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
