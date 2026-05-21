@@ -42,14 +42,15 @@ function rndDigits(n) {
 }
 
 export default function Game({ uid, player, onMenu, onGameOver, settings, gameMode, kleurOpts }) {
-  var diffMod     = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
-  var winsUp      = (settings && settings.winsUp) || 3;
-  var showMode    = (settings && settings.showMode) || "together";
-  var isKleur     = gameMode === "kleur";
-  var isFlits     = gameMode === "flits";
-  var kleurFactor = (kleurOpts && kleurOpts.factor) || 1.0;
-  var modeFactor  = isFlits ? 2.5 : 1.0;
-  var toonCijfers = !isKleur || (kleurOpts && kleurOpts.cijfers);
+  var diffMod      = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
+  var winsUp       = (settings && settings.winsUp) || 3;
+  var showMode     = (settings && settings.showMode) || "together";
+  var isKleur      = gameMode === "kleur";
+  var isFlits      = gameMode === "flits";
+  var isOmgekeerd  = gameMode === "omgekeerd";
+  var kleurFactor  = (kleurOpts && kleurOpts.factor) || 1.0;
+  var modeFactor   = isFlits ? 2.5 : isOmgekeerd ? 1.8 : 1.0;
+  var toonCijfers  = !isKleur || (kleurOpts && kleurOpts.cijfers);
 
   const [phase, setPhase]                 = useState("countdown");
   const [cdCount, setCdCount]             = useState(3);
@@ -68,7 +69,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   const [inputTimeLeft, setInputTimeLeft] = useState(0);
   const [inputMaxTime, setInputMaxTime]   = useState(10000);
   const [scoreTotal, setScoreTotal]       = useState(0);
-  // Level up: null | "fading" | "showing"
   const [levelUpPhase, setLevelUpPhase]   = useState(null);
   const [nextDigits, setNextDigits]       = useState(START_DIGITS + 1);
   const [showMenu, setShowMenu]           = useState(false);
@@ -229,7 +229,12 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
     setInp(next);
     if (next.length === digitsRef.current) {
       clearInterval(inputTmr.current);
-      handleResult(next.join("") === seqRef.current, false);
+      // Omgekeerd: vergelijk met omgekeerde reeks
+      var answer = next.join("");
+      var correct = isOmgekeerd
+        ? answer === seqRef.current.split("").reverse().join("")
+        : answer === seqRef.current;
+      handleResult(correct, false);
     }
   }
 
@@ -283,21 +288,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           setWins(0);
           var nd = digitsRef.current + 1;
           setNextDigits(nd);
-
-          // Fase 1: fade naar donker
           setLevelUpPhase("fading");
-
-          // Fase 2: toon level up tekst
-          setTimeout(function() {
-            setLevelUpPhase("showing");
-          }, 500);
-
-          // Fase 3: verder spelen
-          setTimeout(function() {
-            setLevelUpPhase(null);
-            startRound(nd);
-          }, 2800);
-
+          setTimeout(function() { setLevelUpPhase("showing"); }, 500);
+          setTimeout(function() { setLevelUpPhase(null); startRound(nd); }, 2800);
         } else {
           startRound();
         }
@@ -368,13 +361,12 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
       transition:"background 0.2s"
     }}>
 
-      {/* Level up overlay — fade + show */}
+      {/* Level up */}
       {levelUpPhase && (
         <div style={{
           position:"fixed", inset:0, zIndex:99,
           display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center", gap:8,
-          // Fade in donker
           background:"rgba(0,0,0,0.92)",
           opacity: levelUpPhase === "fading" ? 0 : 1,
           transition:"opacity 0.5s ease"
@@ -393,10 +385,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               letterSpacing:4
             }}>LEVEL UP!</div>
             <div style={{
-              fontSize:22, marginTop:4,
-              color:"#22C55E",
-              textShadow:"0 0 20px #22C55E",
-              fontWeight:700
+              fontSize:22, marginTop:4, color:"#22C55E",
+              textShadow:"0 0 20px #22C55E", fontWeight:700
             }}>Nu {nextDigits} cijfers! 🎯</div>
           </div>
         </div>
@@ -444,6 +434,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           return <span key={i}>{i < wins ? "⭐" : "☆"}</span>;
         })}
         <span className="streak-hint">{wins}/{winsUp} voor level</span>
+        {isOmgekeerd && (
+          <span style={{fontSize:12, color:"#06B6D4", fontWeight:700, marginLeft:4}}>↩️ omgekeerd</span>
+        )}
       </div>
 
       {/* Display area */}
@@ -469,7 +462,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}>{cdCount}</div>
             </div>
             <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-              {isFlits ? "⚡ Flits modus!" : "Klaarmaken..."}
+              {isFlits ? "⚡ Flits modus!" : isOmgekeerd ? "↩️ Omgekeerd!" : "Klaarmaken..."}
             </div>
             <div style={{display:"flex", gap:8}}>
               {[3,2,1].map(function(n) {
@@ -515,6 +508,16 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                 </div>
               );
             })}
+            {/* Omgekeerd pijl hint onder kaarten */}
+            {isOmgekeerd && (
+              <div style={{
+                fontSize:28, opacity:0.6, marginTop:4,
+                display:"flex", alignItems:"center", gap:8
+              }}>
+                <span>↩️</span>
+                <span style={{fontSize:13, opacity:0.7}}>Voer omgekeerd in</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -549,6 +552,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                 </div>
               );
             })}
+            {isOmgekeerd && (
+              <div style={{fontSize:28, opacity:0.6, marginTop:4}}>↩️</div>
+            )}
           </div>
         )}
 
@@ -556,7 +562,7 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         {(phase === "input" || phase === "fb") && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Timer bovenaan */}
+            {/* Timer */}
             <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
               <div style={{
                 height:"100%", width:inputPct+"%",

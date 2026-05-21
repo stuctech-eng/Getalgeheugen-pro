@@ -23,8 +23,7 @@ const MODES = [
     id: "omgekeerd",
     emoji: "🔄",
     naam: "Omgekeerd",
-    desc: "Invoer in omgekeerde volgorde",
-    soon: true
+    desc: "Invoer in omgekeerde volgorde — ×1.8 punten"
   },
   {
     id: "oplopend",

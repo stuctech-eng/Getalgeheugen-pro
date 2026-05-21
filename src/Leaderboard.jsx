@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { subscribeScores } from "./firebase.js";
 
 const MODES = [
-  { id:"klassiek",  emoji:"🧠", naam:"Klassiek" },
-  { id:"kleur",     emoji:"🎨", naam:"Kleur" },
-  { id:"flits",     emoji:"⚡", naam:"Flits" },
+  { id:"klassiek",   emoji:"🧠", naam:"Klassiek" },
+  { id:"kleur",      emoji:"🎨", naam:"Kleur" },
+  { id:"flits",      emoji:"⚡", naam:"Flits" },
+  { id:"omgekeerd",  emoji:"🔄", naam:"Omgekeerd" },
 ];
 
 export default function Leaderboard({ uid, onBack }) {
@@ -25,7 +26,6 @@ export default function Leaderboard({ uid, onBack }) {
     <div className="screen" style={{paddingBottom:100}}>
       <h2 className="screen-title">🏆 Scorebord</h2>
 
-      {/* Modus tabs */}
       <div style={{
         display:"flex", gap:8, width:"100%", maxWidth:400,
         overflowX:"auto", paddingBottom:4
