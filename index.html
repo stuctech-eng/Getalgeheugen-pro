@@ -12,10 +12,6 @@
   <meta name="theme-color" content="#0D1136">
 
   <style>
-    #app-root {
-      display: block;
-    }
-
     #pwa-install-overlay {
       display: none;
       flex-direction: column;
@@ -124,7 +120,7 @@
     </p>
   </div>
 
-  <div id="app-root"></div>
+  <div id="root"></div>
 
   <script type="module" src="/src/main.jsx"></script>
 
@@ -135,7 +131,7 @@
 
     if (!isStandalone) {
       document.getElementById('pwa-install-overlay').style.display = 'flex';
-      document.getElementById('app-root').style.display = 'none';
+      document.getElementById('root').style.display = 'none';
     }
   </script>
 
