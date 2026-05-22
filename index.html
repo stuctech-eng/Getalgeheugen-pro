@@ -13,11 +13,11 @@
 
   <style>
     #app-root {
-      display: none;
+      display: block;
     }
 
     #pwa-install-overlay {
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -28,6 +28,9 @@
       color: #fff;
       font-family: 'Trebuchet MS', sans-serif;
       box-sizing: border-box;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
     }
 
     #pwa-install-overlay h2 {
@@ -89,15 +92,6 @@
       border-top: 1px solid rgba(255,255,255,0.08);
       margin: 16px 0;
     }
-
-    @media (display-mode: standalone) {
-      #app-root {
-        display: block;
-      }
-      #pwa-install-overlay {
-        display: none !important;
-      }
-    }
   </style>
 </head>
 <body style="margin:0; background:#0D1136;">
@@ -132,19 +126,18 @@
 
   <div id="app-root"></div>
 
+  <script type="module" src="/src/main.jsx"></script>
+
   <script>
     var isStandalone = window.matchMedia('(display-mode: standalone)').matches
                     || window.navigator.standalone === true
                     || document.referrer.includes('android-app://');
 
     if (!isStandalone) {
-      console.warn("App geopend via browser — Firebase geblokkeerd.");
-      throw new Error("PWA_NOT_STANDALONE");
+      document.getElementById('pwa-install-overlay').style.display = 'flex';
+      document.getElementById('app-root').style.display = 'none';
     }
-
-    console.log("✅ PWA standalone modus — app start...");
   </script>
 
-  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
