@@ -13,6 +13,14 @@ const CD_GLOW   = ["rgba(239,68,68,0.4)","rgba(249,115,22,0.4)","rgba(34,197,94,
 const TOTAL_LIVES = 3;
 const START_DIGITS = 3;
 
+const DIFF_TIME_FACTOR = {
+  0.4:  2.0,   // Zen
+  0.2:  1.5,   // Makkelijk
+  0:    1.0,   // Normaal
+  "-0.2": 0.6, // Moeilijk
+  "-0.4": 0.3  // Pro
+};
+
 function rndUniqueDigits(n) {
   var digits = ["0","1","2","3","4","5","6","7","8","9"];
   var result = [];
@@ -38,7 +46,7 @@ function calcFeedback(secret, guess) {
   return feedback;
 }
 
-function getTimeLimit(digits) {
+function getBaseTimeLimit(digits) {
   if (digits <= 3) return 60;
   if (digits <= 4) return 90;
   if (digits <= 5) return 120;
@@ -46,7 +54,9 @@ function getTimeLimit(digits) {
 }
 
 export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings }) {
-  var winsUp = (settings && settings.winsUp) || 3;
+  var winsUp  = (settings && settings.winsUp) || 3;
+  var diffMod = (settings && settings.difficultyMod !== undefined) ? settings.difficultyMod : 0;
+  var timeFactor = DIFF_TIME_FACTOR[String(diffMod)] || 1.0;
 
   const [phase, setPhase]                 = useState("countdown");
   const [cdCount, setCdCount]             = useState(3);
@@ -67,6 +77,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   const [gameOver, setGameOver]           = useState(false);
   const [timeLeft, setTimeLeft]           = useState(60);
   const [timeMax, setTimeMax]             = useState(60);
+  const [timesUp, setTimesUp]             = useState(false);
 
   const digitsRef      = useRef(START_DIGITS);
   const secretRef      = useRef("");
@@ -81,6 +92,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   const cdTmr          = useRef(null);
   const timeTmr        = useRef(null);
   const checkingRef    = useRef(false);
+  const gameOverRef    = useRef(false);
 
   useEffect(function() {
     startRound(START_DIGITS);
@@ -98,7 +110,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
   function handleResume() {
     setShowMenu(false);
-    if (phase === "input" && !gameOver) {
+    if (phase === "input" && !gameOverRef.current) {
       startTimerFromNow();
     }
   }
@@ -112,10 +124,47 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     clearInterval(timeTmr.current);
     timeTmr.current = setInterval(function() {
       setTimeLeft(function(t) {
-        if (t <= 0) return 0;
+        if (t <= 1) {
+          clearInterval(timeTmr.current);
+          handleTimerUp();
+          return 0;
+        }
         return t - 1;
       });
     }, 1000);
+  }
+
+  function handleTimerUp() {
+    if (gameOverRef.current || checkingRef.current) return;
+    gameOverRef.current = true;
+    setGameOver(true);
+    setTimesUp(true);
+    streakRef.current = 0;
+    setStreak(0);
+    audio.buzz();
+    vibrate("bad");
+
+    var newLives = livesRef.current - 1;
+    livesRef.current = newLives;
+    setLives(newLives);
+    winsRef.current = 0;
+    setWins(0);
+
+    setTimeout(function() {
+      if (newLives <= 0) {
+        var finalScore = scoreTotalRef.current;
+        var finalMax   = maxDRef.current;
+        saveScore(uid, player, finalScore, finalMax, "codebreker").then(function() {
+          onGameOver({ score: finalScore, maxDigits: finalMax });
+        }).catch(function() {
+          onGameOver({ score: finalScore, maxDigits: finalMax });
+        });
+      } else {
+        roundRef.current++;
+        setRound(roundRef.current);
+        startRound();
+      }
+    }, 1500);
   }
 
   function startRound(nd) {
@@ -132,8 +181,10 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     setPogingenCount(0);
     pogingenRef.current = 0;
     setGameOver(false);
+    setTimesUp(false);
+    gameOverRef.current = false;
     checkingRef.current = false;
-    var tl = getTimeLimit(digits);
+    var tl = Math.round(getBaseTimeLimit(digits) * timeFactor);
     setTimeLeft(tl);
     setTimeMax(tl);
     audio.tick();
@@ -199,9 +250,10 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
     if (correct) {
       clearInterval(timeTmr.current);
+      gameOverRef.current = true;
 
-      var elapsed  = Math.round((Date.now() - startTimeRef.current) / 1000);
-      var tl       = getTimeLimit(digitsRef.current);
+      var elapsed      = Math.round((Date.now() - startTimeRef.current) / 1000);
+      var tl           = Math.round(getBaseTimeLimit(digitsRef.current) * timeFactor);
       var tijdBonus    = Math.max(0, Math.round((tl - elapsed) / tl * 100));
       var pogBonus     = Math.max(10, Math.round(100 / newCount));
       var bp           = digitsRef.current * 10;
@@ -349,6 +401,9 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
             <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
               🔓 Code Breker!
             </div>
+            <div style={{fontSize:12, opacity:0.4}}>
+              ⏱ {Math.round(getBaseTimeLimit(displayDigits) * timeFactor)}s per ronde
+            </div>
           </div>
         )}
 
@@ -356,7 +411,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
         {phase === "input" && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Timer balk + tijd */}
+            {/* Timer */}
             <div style={{display:"flex", alignItems:"center", gap:8}}>
               <div style={{flex:1, height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
                 <div style={{
@@ -373,8 +428,20 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
               }}>⏱{timeLeft}s</div>
             </div>
 
+            {/* Tijd op melding */}
+            {timesUp && (
+              <div style={{
+                textAlign:"center", padding:"10px",
+                background:"rgba(239,68,68,0.1)",
+                borderRadius:14, border:"1px solid rgba(239,68,68,0.3)"
+              }}>
+                <div style={{fontSize:24}}>⏰</div>
+                <div style={{fontSize:14, color:"#F87171", fontWeight:700}}>Tijd op! Leven kwijt</div>
+              </div>
+            )}
+
             {/* Feedback van laatste poging */}
-            {lastPoging && (
+            {lastPoging && !timesUp && (
               <div style={{
                 padding:"12px 16px",
                 background:"rgba(255,255,255,0.04)",
@@ -421,7 +488,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
             )}
 
             {/* Gewonnen */}
-            {gameOver && (
+            {gameOver && !timesUp && (
               <div style={{textAlign:"center", padding:"8px 0"}}>
                 <div style={{fontSize:32}}>🎉</div>
                 <div style={{fontSize:15, fontWeight:700, color:"#22C55E",
@@ -431,7 +498,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
               </div>
             )}
 
-            {/* Numpad — knoppen dimmen als al ingetikt */}
+            {/* Numpad */}
             {!gameOver && (
               <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
                 {nums.map(function(row, ri) {
@@ -443,14 +510,12 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                         var color  = isDel ? null : DIGIT_COLORS[k];
                         var isLit  = litKey === k;
                         var isUsed = !isDel && currentInp.includes(k);
-
                         return (
                           <button key={ki} onClick={function(){ tap(k); }} style={{
                             flex:1, aspectRatio:"1/1",
                             borderRadius:20, border: isUsed ? "2px solid rgba(255,255,255,0.15)" : "none",
                             cursor: isUsed ? "default" : "pointer",
                             fontSize: isDel ? 24 : 30, fontWeight:900,
-                            // Gedimde kleur als gebruikt, wit flash bij tikken
                             background: isDel
                               ? isLit ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.12)"
                               : isUsed ? "rgba(255,255,255,0.06)"

@@ -2,11 +2,11 @@ import { useState } from "react";
 import { updateScoreName } from "./firebase.js";
 
 const DIFFICULTY_LEVELS = [
-  { label: "🧘 Zen",       mod: 0.4,  desc: "+40% tijd -- ×0.6 punten" },
-  { label: "🟢 Makkelijk", mod: 0.2,  desc: "+20% tijd -- ×0.8 punten" },
-  { label: "🟡 Normaal",   mod: 0,    desc: "Standaard -- ×1.0 punten" },
-  { label: "🔴 Moeilijk",  mod: -0.2, desc: "-20% tijd -- ×1.4 punten" },
-  { label: "⚡ Pro",       mod: -0.4, desc: "-40% tijd -- ×2.0 punten" },
+  { label: "🧘 Zen",       mod: 0.4,  desc: "+40% tijd — ×0.6 punten",  cbTime: "120s" },
+  { label: "🟢 Makkelijk", mod: 0.2,  desc: "+20% tijd — ×0.8 punten",  cbTime: "90s"  },
+  { label: "🟡 Normaal",   mod: 0,    desc: "Standaard — ×1.0 punten",   cbTime: "60s"  },
+  { label: "🔴 Moeilijk",  mod: -0.2, desc: "-40% tijd — ×1.4 punten",  cbTime: "36s"  },
+  { label: "⚡ Pro",       mod: -0.4, desc: "-70% tijd — ×2.0 punten",  cbTime: "18s"  },
 ];
 
 export default function Settings({ settings, player, uid, onSave, onNameChange, onBack }) {
@@ -41,6 +41,7 @@ export default function Settings({ settings, player, uid, onSave, onNameChange, 
 
       <div className="settings-box">
 
+        {/* Naam */}
         <div className="setting-row">
           <div className="setting-label">Naam wijzigen</div>
           <div style={{display:"flex", gap:8}}>
@@ -59,9 +60,10 @@ export default function Settings({ settings, player, uid, onSave, onNameChange, 
               {saving ? "..." : "✅"}
             </button>
           </div>
-          {nameMsg && <p style={{fontSize:13, opacity:0.7}}>{nameMsg}</p>}
+          {nameMsg && <p style={{fontSize:13, opacity:0.7, marginTop:4}}>{nameMsg}</p>}
         </div>
 
+        {/* Weergave modus */}
         <div className="setting-row">
           <div className="setting-label">Weergave modus</div>
           <div className="mode-btns">
@@ -77,10 +79,11 @@ export default function Settings({ settings, player, uid, onSave, onNameChange, 
             </button>
           </div>
           <div className="setting-hint-small">
-            {s.showMode === "sequential" ? "Moeilijker -- ×1.5 punten bonus" : "Standaard modus"}
+            {s.showMode === "sequential" ? "Moeilijker — ×1.5 punten bonus" : "Standaard modus"}
           </div>
         </div>
 
+        {/* Moeilijkheid */}
         <div className="setting-row">
           <div className="setting-label">Moeilijkheidsgraad</div>
           <div className="diff-btns">
@@ -95,8 +98,26 @@ export default function Settings({ settings, player, uid, onSave, onNameChange, 
             })}
           </div>
           <div className="setting-hint-small">{currentDiff.desc}</div>
+
+          {/* Code Breker tijdlimiet info */}
+          <div style={{
+            marginTop:8, padding:"10px 14px",
+            background:"rgba(234,179,8,0.1)",
+            border:"1px solid rgba(234,179,8,0.25)",
+            borderRadius:12,
+            display:"flex", alignItems:"center", gap:10
+          }}>
+            <span style={{fontSize:18}}>🔓</span>
+            <div>
+              <div style={{fontSize:12, fontWeight:700, color:"#EAB308"}}>Code Breker tijdlimiet</div>
+              <div style={{fontSize:11, opacity:0.5, marginTop:2}}>
+                Bij deze moeilijkheid: <strong style={{color:"#EAB308"}}>{currentDiff.cbTime} per ronde</strong> (3 cijfers)
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Level-up instelling */}
         <div className="setting-row">
           <div className="setting-label">
             Goed voor level-up <span className="setting-hint">{s.winsUp}</span>
