@@ -38,61 +38,90 @@ function calcFeedback(secret, guess) {
   return feedback;
 }
 
-function getMaxPogingen(digits) {
-  if (digits <= 3) return 4;
-  if (digits <= 4) return 5;
-  if (digits <= 5) return 6;
-  return 7;
+function getTimeLimit(digits) {
+  if (digits <= 3) return 60;
+  if (digits <= 4) return 90;
+  if (digits <= 5) return 120;
+  return 150;
 }
 
 export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings }) {
   var winsUp = (settings && settings.winsUp) || 3;
 
-  const [phase, setPhase]               = useState("countdown");
-  const [cdCount, setCdCount]           = useState(3);
-  const [cdAnim, setCdAnim]             = useState(true);
-  const [currentInp, setCurrentInp]     = useState([]);
-  const [pogingen, setPogingen]         = useState([]);
-  const [wins, setWins]                 = useState(0);
-  const [lives, setLives]               = useState(TOTAL_LIVES);
-  const [streak, setStreak]             = useState(0);
-  const [round, setRound]               = useState(1);
+  const [phase, setPhase]                 = useState("countdown");
+  const [cdCount, setCdCount]             = useState(3);
+  const [cdAnim, setCdAnim]               = useState(true);
+  const [currentInp, setCurrentInp]       = useState([]);
+  const [lastPoging, setLastPoging]       = useState(null);
+  const [pogingenCount, setPogingenCount] = useState(0);
+  const [wins, setWins]                   = useState(0);
+  const [lives, setLives]                 = useState(TOTAL_LIVES);
+  const [streak, setStreak]               = useState(0);
+  const [round, setRound]                 = useState(1);
   const [displayDigits, setDisplayDigits] = useState(START_DIGITS);
-  const [scoreTotal, setScoreTotal]     = useState(0);
-  const [levelUpPhase, setLevelUpPhase] = useState(null);
-  const [nextDigits, setNextDigits]     = useState(START_DIGITS + 1);
-  const [showMenu, setShowMenu]         = useState(false);
-  const [litKey, setLitKey]             = useState(null);
-  const [gameOver, setGameOver]         = useState(false);
-  const [revealSecret, setRevealSecret] = useState("");
+  const [scoreTotal, setScoreTotal]       = useState(0);
+  const [levelUpPhase, setLevelUpPhase]   = useState(null);
+  const [nextDigits, setNextDigits]       = useState(START_DIGITS + 1);
+  const [showMenu, setShowMenu]           = useState(false);
+  const [litKey, setLitKey]               = useState(null);
+  const [gameOver, setGameOver]           = useState(false);
+  const [timeLeft, setTimeLeft]           = useState(60);
+  const [timeMax, setTimeMax]             = useState(60);
 
-  const digitsRef     = useRef(START_DIGITS);
-  const secretRef     = useRef("");
-  const winsRef       = useRef(0);
-  const livesRef      = useRef(TOTAL_LIVES);
-  const streakRef     = useRef(0);
-  const maxDRef       = useRef(START_DIGITS);
-  const scoreTotalRef = useRef(0);
-  const roundRef      = useRef(1);
-  const pogingenRef   = useRef([]);
-  const cdTmr         = useRef(null);
-  const checkingRef   = useRef(false);
+  const digitsRef      = useRef(START_DIGITS);
+  const secretRef      = useRef("");
+  const winsRef        = useRef(0);
+  const livesRef       = useRef(TOTAL_LIVES);
+  const streakRef      = useRef(0);
+  const maxDRef        = useRef(START_DIGITS);
+  const scoreTotalRef  = useRef(0);
+  const roundRef       = useRef(1);
+  const pogingenRef    = useRef(0);
+  const startTimeRef   = useRef(0);
+  const cdTmr          = useRef(null);
+  const timeTmr        = useRef(null);
+  const checkingRef    = useRef(false);
 
   useEffect(function() {
     startRound(START_DIGITS);
-    return function() { clearInterval(cdTmr.current); };
+    return function() {
+      clearInterval(cdTmr.current);
+      clearInterval(timeTmr.current);
+    };
   }, []);
 
   function handleBackPress() {
     clearInterval(cdTmr.current);
+    clearInterval(timeTmr.current);
     setShowMenu(true);
   }
 
-  function handleResume() { setShowMenu(false); }
-  function handleStop() { setShowMenu(false); onMenu(); }
+  function handleResume() {
+    setShowMenu(false);
+    // Hervat timer
+    if (phase === "input" && !gameOver) {
+      startTimerFromNow();
+    }
+  }
+
+  function handleStop() {
+    setShowMenu(false);
+    onMenu();
+  }
+
+  function startTimerFromNow() {
+    clearInterval(timeTmr.current);
+    timeTmr.current = setInterval(function() {
+      setTimeLeft(function(t) {
+        if (t <= 0) return 0;
+        return t - 1;
+      });
+    }, 1000);
+  }
 
   function startRound(nd) {
     clearInterval(cdTmr.current);
+    clearInterval(timeTmr.current);
     var digits = (nd !== undefined) ? nd : digitsRef.current;
     digitsRef.current = digits;
     setDisplayDigits(digits);
@@ -100,11 +129,14 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     setCdCount(3);
     setCdAnim(true);
     setCurrentInp([]);
-    setPogingen([]);
-    pogingenRef.current = [];
+    setLastPoging(null);
+    setPogingenCount(0);
+    pogingenRef.current = 0;
     setGameOver(false);
-    setRevealSecret("");
     checkingRef.current = false;
+    var tl = getTimeLimit(digits);
+    setTimeLeft(tl);
+    setTimeMax(tl);
     audio.tick();
     var count = 3;
     cdTmr.current = setInterval(function() {
@@ -119,7 +151,9 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
         var s = rndUniqueDigits(digits);
         secretRef.current = s;
         setCurrentInp([]);
+        startTimeRef.current = Date.now();
         setPhase("input");
+        startTimerFromNow();
       }
     }, 800);
   }
@@ -146,7 +180,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
       if (next.length === digitsRef.current) {
         checkingRef.current = true;
-        // Gebruik setTimeout zodat state update eerst verwerkt wordt
         setTimeout(function() { checkPoging(next); }, 50);
       }
 
@@ -158,25 +191,31 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     var secret   = secretRef.current;
     var feedback = calcFeedback(secret, guess);
     var correct  = feedback.every(function(f) { return f === "correct"; });
-    var maxPog   = getMaxPogingen(digitsRef.current);
-    var newPogingen = [...pogingenRef.current, { guess: guess.join(""), feedback }];
-    pogingenRef.current = newPogingen;
-    setPogingen([...newPogingen]);
+    var newCount = pogingenRef.current + 1;
+    pogingenRef.current = newCount;
+    setPogingenCount(newCount);
+    setLastPoging({ guess: guess.join(""), feedback });
     setCurrentInp([]);
     checkingRef.current = false;
 
     if (correct) {
-      var gebruiktePogingen = newPogingen.length;
-      var pogingenBonus = (maxPog - gebruiktePogingen + 1) * 20;
-      var newStreak = streakRef.current + 1;
+      clearInterval(timeTmr.current);
+
+      // Score berekening
+      var elapsed  = Math.round((Date.now() - startTimeRef.current) / 1000);
+      var tl       = getTimeLimit(digitsRef.current);
+      var tijdBonus    = Math.max(0, Math.round((tl - elapsed) / tl * 100));
+      var pogBonus     = Math.max(10, Math.round(100 / newCount));
+      var bp           = digitsRef.current * 10;
+      var newStreak    = streakRef.current + 1;
       streakRef.current = newStreak;
       setStreak(newStreak);
-      var streakMult = newStreak >= 7 ? 3.0 : newStreak >= 5 ? 2.0 : newStreak >= 3 ? 1.5 : 1.0;
-      var bp = digitsRef.current * 10;
-      var roundScore = Math.round((bp + pogingenBonus) * streakMult * 2.0);
+      var streakMult   = newStreak >= 7 ? 3.0 : newStreak >= 5 ? 2.0 : newStreak >= 3 ? 1.5 : 1.0;
+      var roundScore   = Math.round((bp + tijdBonus + pogBonus) * streakMult * 2.0);
       scoreTotalRef.current += roundScore;
       setScoreTotal(scoreTotalRef.current);
       maxDRef.current = Math.max(maxDRef.current, digitsRef.current);
+
       audio.boing();
       vibrate("ok");
       setGameOver(true);
@@ -188,7 +227,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
       setTimeout(function() {
         roundRef.current++;
         setRound(roundRef.current);
-        pogingenRef.current = [];
         if (nw >= winsUp) {
           audio.levelUp();
           winsRef.current = 0;
@@ -203,46 +241,16 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
         }
       }, 1500);
 
-    } else if (newPogingen.length >= maxPog) {
-      streakRef.current = 0;
-      setStreak(0);
-      audio.buzz();
-      vibrate("bad");
-      setGameOver(true);
-      setRevealSecret(secret);
-
-      var newLives = livesRef.current - 1;
-      livesRef.current = newLives;
-      setLives(newLives);
-      winsRef.current = 0;
-      setWins(0);
-
-      setTimeout(function() {
-        if (newLives <= 0) {
-          var finalScore = scoreTotalRef.current;
-          var finalMax   = maxDRef.current;
-          saveScore(uid, player, finalScore, finalMax, "codebreker").then(function() {
-            onGameOver({ score: finalScore, maxDigits: finalMax });
-          }).catch(function() {
-            onGameOver({ score: finalScore, maxDigits: finalMax });
-          });
-        } else {
-          roundRef.current++;
-          setRound(roundRef.current);
-          pogingenRef.current = [];
-          startRound();
-        }
-      }, 2500);
-
     } else {
       audio.pop();
     }
   }
 
-  var maxPogingen = getMaxPogingen(displayDigits);
-  var cdColor = CD_COLORS[cdCount - 1] || "#22C55E";
-  var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
+  var cdColor    = CD_COLORS[cdCount - 1] || "#22C55E";
+  var cdGlow     = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
   var streakSize = streak >= 7 ? 24 : streak >= 5 ? 20 : streak >= 3 ? 17 : 14;
+  var timePct    = timeMax > 0 ? (timeLeft / timeMax) * 100 : 0;
+  var timerColor = timePct > 60 ? "#22C55E" : timePct > 30 ? "#EAB308" : "#EF4444";
   var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["","0","del"]];
 
   return (
@@ -303,7 +311,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
           fontSize:12, color:"#EAB308", fontWeight:700,
           background:"rgba(255,255,255,0.08)",
           padding:"5px 10px", borderRadius:20
-        }}>🔓 {pogingen.length}/{maxPogingen}</div>
+        }}>🔓 {pogingenCount} pogingen</div>
         <span className="score-badge">🏆 {scoreTotal}</span>
         {streak >= 3 && <span style={{fontSize:streakSize, transition:"font-size 0.3s"}}>🔥{streak}</span>}
       </div>
@@ -321,7 +329,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
       </div>
 
       {/* Display area */}
-      <div className="display-area" style={{gap:6}}>
+      <div className="display-area" style={{gap:12}}>
 
         {/* COUNTDOWN */}
         {phase === "countdown" && (
@@ -348,19 +356,49 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
         {/* INVOER */}
         {phase === "input" && (
-          <div style={{display:"flex", flexDirection:"column", gap:6, width:"100%", flex:1}}>
+          <div style={{display:"flex", flexDirection:"column", gap:12, width:"100%", flex:1}}>
 
-            {/* Pogingen geschiedenis */}
-            <div style={{display:"flex", flexDirection:"column", gap:4}}>
-              {pogingen.map(function(p, pi) {
-                var isLast = pi === pogingen.length - 1;
-                return (
-                  <div key={pi} style={{
-                    display:"flex", gap:4, justifyContent:"center",
-                    opacity: isLast ? 1 : 0.5
-                  }}>
-                    {p.guess.split("").map(function(d, di) {
-                      var fb    = p.feedback[di];
+            {/* Timer balk */}
+            <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
+              <div style={{
+                height:"100%", width:timePct+"%",
+                background:timerColor,
+                boxShadow:"0 0 10px "+timerColor,
+                borderRadius:3, transition:"width 1s linear, background 0.3s"
+              }}/>
+            </div>
+
+            {/* Tijd label */}
+            <div style={{
+              textAlign:"center", fontSize:13,
+              color: timePct < 30 ? "#EF4444" : "rgba(255,255,255,0.4)",
+              fontWeight: timePct < 30 ? 700 : 400,
+              transition:"color 0.3s"
+            }}>⏱ {timeLeft}s</div>
+
+            {/* Laatste poging — één rij */}
+            <div style={{
+              display:"flex", flexDirection:"column",
+              alignItems:"center", gap:12
+            }}>
+
+              {/* Vorige poging feedback */}
+              {lastPoging && (
+                <div style={{
+                  display:"flex", flexDirection:"column",
+                  alignItems:"center", gap:8,
+                  padding:"14px 20px",
+                  background:"rgba(255,255,255,0.04)",
+                  borderRadius:20,
+                  border:"1px solid rgba(255,255,255,0.08)",
+                  width:"100%", maxWidth:360
+                }}>
+                  <div style={{fontSize:11, opacity:0.35, letterSpacing:2, textTransform:"uppercase"}}>
+                    Poging {pogingenCount}
+                  </div>
+                  <div style={{display:"flex", gap:8, justifyContent:"center"}}>
+                    {lastPoging.guess.split("").map(function(d, di) {
+                      var fb    = lastPoging.feedback[di];
                       var color = DIGIT_COLORS[d];
                       var bg    = fb === "correct"  ? color
                         : fb === "misplaced" ? color+"55"
@@ -370,77 +408,62 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                         : "2px solid rgba(255,255,255,0.1)";
                       return (
                         <div key={di} style={{
-                          width:44, height:44, borderRadius:12,
+                          width:52, height:52, borderRadius:14,
                           background:bg, border:border,
                           display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:20, fontWeight:900, color:"#fff",
-                          boxShadow: fb === "correct" ? "0 0 12px "+color+"66" : "none"
+                          fontSize:24, fontWeight:900, color:"#fff",
+                          boxShadow: fb === "correct" ? "0 0 16px "+color+"88" : "none"
                         }}>{d}</div>
                       );
                     })}
-                    <div style={{display:"flex", alignItems:"center", gap:2, marginLeft:4}}>
-                      {p.feedback.map(function(f, fi) {
-                        return (
-                          <span key={fi} style={{fontSize:14}}>
-                            {f === "correct" ? "✅" : f === "misplaced" ? "🟡" : "❌"}
-                          </span>
-                        );
-                      })}
-                    </div>
                   </div>
-                );
-              })}
-
-              {/* Lege rijen */}
-              {Array.from({length: maxPogingen - pogingen.length}, function(_, i) {
-                var isCurrent = i === 0 && !gameOver;
-                return (
-                  <div key={i} style={{display:"flex", gap:4, justifyContent:"center"}}>
-                    {Array.from({length:displayDigits}, function(_, j) {
-                      var ch = isCurrent && currentInp[j] ? currentInp[j] : "";
-                      var color = ch ? DIGIT_COLORS[ch] : null;
+                  <div style={{display:"flex", gap:6, alignItems:"center"}}>
+                    {lastPoging.feedback.map(function(f, fi) {
                       return (
-                        <div key={j} style={{
-                          width:44, height:44, borderRadius:12,
-                          background: ch ? color : "rgba(255,255,255,0.04)",
-                          border: ch
-                            ? "2px solid "+color
-                            : isCurrent && j === currentInp.length
-                            ? "2px solid rgba(168,85,247,0.6)"
-                            : "2px dashed rgba(255,255,255,0.12)",
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:20, fontWeight:900, color:"#fff",
-                          boxShadow: ch ? "0 0 12px "+color+"66" : "none",
-                          opacity: isCurrent ? 1 : 0.2
-                        }}>{ch}</div>
+                        <span key={fi} style={{fontSize:18}}>
+                          {f === "correct" ? "✅" : f === "misplaced" ? "🟡" : "❌"}
+                        </span>
                       );
                     })}
-                    <div style={{width:60}}/>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              )}
 
-            {/* Code tonen bij verlies */}
-            {gameOver && revealSecret && (
-              <div style={{textAlign:"center", padding:"6px 0"}}>
-                <div style={{fontSize:12, opacity:0.4, marginBottom:4}}>De code was:</div>
-                <div style={{display:"flex", gap:4, justifyContent:"center"}}>
-                  {revealSecret.split("").map(function(d, i) {
-                    var color = DIGIT_COLORS[d];
+              {/* Huidige invoer */}
+              {!gameOver && (
+                <div style={{display:"flex", gap:8, justifyContent:"center"}}>
+                  {Array.from({length:displayDigits}, function(_, i) {
+                    var ch    = currentInp[i] || "";
+                    var color = ch ? DIGIT_COLORS[ch] : null;
+                    var isActive = !ch && i === currentInp.length;
                     return (
                       <div key={i} style={{
-                        width:44, height:44, borderRadius:12,
-                        background:color, border:"2px solid "+color,
+                        width:52, height:52, borderRadius:14,
+                        background: ch ? color : "rgba(255,255,255,0.04)",
+                        border: ch ? "2px solid "+color
+                          : isActive ? "2px solid rgba(168,85,247,0.7)"
+                          : "2px dashed rgba(255,255,255,0.15)",
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:20, fontWeight:900, color:"#fff",
-                        boxShadow:"0 0 16px "+color+"66"
-                      }}>{d}</div>
+                        fontSize:24, fontWeight:900, color:"#fff",
+                        boxShadow: ch ? "0 0 14px "+color+"66" : "none",
+                        transition:"all 0.15s"
+                      }}>{ch}</div>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Gewonnen bericht */}
+              {gameOver && (
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:36}}>🎉</div>
+                  <div style={{fontSize:16, fontWeight:700, color:"#22C55E",
+                    textShadow:"0 0 20px #22C55E"}}>
+                    Code gekraakt in {pogingenCount} {pogingenCount === 1 ? "poging" : "pogingen"}!
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Numpad */}
             {!gameOver && (
