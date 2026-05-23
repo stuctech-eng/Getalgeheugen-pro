@@ -12,112 +12,310 @@
   <meta name="theme-color" content="#0D1136">
 
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0D1136;
+      color: #fff;
+      font-family: 'Trebuchet MS', sans-serif;
+      min-height: 100vh;
+    }
+
     #pwa-install-overlay {
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       min-height: 100vh;
-      text-align: center;
-      padding: 24px;
+      padding: 40px 24px 60px;
       background: #0D1136;
-      color: #fff;
-      font-family: 'Trebuchet MS', sans-serif;
-      box-sizing: border-box;
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
     }
 
-    #pwa-install-overlay h2 {
-      font-size: 26px;
-      font-weight: 900;
-      margin-bottom: 8px;
-      color: #A855F7;
-      text-shadow: 0 0 30px #A855F7;
-    }
-
-    #pwa-install-overlay p {
-      font-size: 14px;
-      opacity: 0.6;
-      margin-bottom: 24px;
-    }
-
-    .install-box {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 24px;
-      max-width: 360px;
-      width: 100%;
-      text-align: left;
-    }
-
-    .install-step {
+    /* Logo animatie */
+    .logo-wrap {
       display: flex;
-      align-items: flex-start;
-      gap: 14px;
+      gap: 10px;
       margin-bottom: 20px;
+      animation: floatIn 0.8s ease both;
     }
 
-    .install-step:last-child {
-      margin-bottom: 0;
-    }
-
-    .install-icon {
+    .logo-card {
+      width: 52px;
+      height: 62px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 28px;
-      flex-shrink: 0;
+      font-weight: 900;
+      color: #fff;
+      animation: popIn 0.4s ease both;
     }
 
-    .install-text strong {
+    .logo-card:nth-child(1) { animation-delay: 0.1s; background: linear-gradient(135deg,#FF6B35,#FF8C42); }
+    .logo-card:nth-child(2) { animation-delay: 0.2s; background: linear-gradient(135deg,#A855F7,#C084FC); }
+    .logo-card:nth-child(3) { animation-delay: 0.3s; background: linear-gradient(135deg,#06B6D4,#22D3EE); }
+    .logo-card:nth-child(4) { animation-delay: 0.4s; background: linear-gradient(135deg,#22C55E,#4ADE80); }
+
+    @keyframes popIn {
+      from { opacity:0; transform: scale(0.5) translateY(20px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes floatIn {
+      from { opacity:0; transform: translateY(-20px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(30px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.05); }
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      animation: fadeUp 0.6s ease 0.4s both;
+    }
+
+    h1 span { color: #A855F7; }
+
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.5;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease 0.5s both;
+    }
+
+    /* Stappen */
+    .steps-title {
+      font-size: 13px;
+      opacity: 0.4;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      animation: fadeUp 0.6s ease 0.6s both;
+    }
+
+    .steps-wrap {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: fadeUp 0.6s ease 0.7s both;
+    }
+
+    .step-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      transition: all 0.2s;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #A855F7, #7C3AED);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(168,85,247,0.5);
+    }
+
+    .step-text strong {
       display: block;
       font-size: 15px;
       font-weight: 700;
-      margin-bottom: 4px;
-      color: #fff;
+      margin-bottom: 2px;
     }
 
-    .install-text span {
-      font-size: 13px;
+    .step-text span {
+      font-size: 12px;
       opacity: 0.5;
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
-    .install-divider {
+    /* OS keuze knoppen */
+    .os-wrap {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      animation: fadeUp 0.6s ease 0.8s both;
+    }
+
+    .os-btn {
+      flex: 1;
+      padding: 14px 10px;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      cursor: pointer;
+      font-family: 'Trebuchet MS', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .os-btn.active {
+      border-color: #A855F7;
+      background: rgba(168,85,247,0.2);
+      box-shadow: 0 0 20px rgba(168,85,247,0.3);
+    }
+
+    .os-btn .os-icon { font-size: 28px; }
+
+    /* Instructie box */
+    .instruction-box {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 20px;
+      overflow: hidden;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .instr-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+    }
+
+    .instr-step:last-child { border-bottom: none; }
+
+    .instr-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+      width: 32px;
+      text-align: center;
+    }
+
+    /* Pulserende knop */
+    .install-btn {
+      margin-top: 24px;
+      padding: 16px 40px;
+      border-radius: 50px;
       border: none;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      margin: 16px 0;
+      background: linear-gradient(135deg, #A855F7, #7C3AED);
+      color: #fff;
+      font-family: 'Trebuchet MS', sans-serif;
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(168,85,247,0.5);
+      animation: fadeUp 0.6s ease 0.9s both, pulse 2s ease 1.5s infinite;
+    }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 11px;
+      opacity: 0.25;
+      text-align: center;
+      animation: fadeUp 0.6s ease 1s both;
     }
   </style>
 </head>
-<body style="margin:0; background:#0D1136;">
+<body>
 
   <div id="pwa-install-overlay">
-    <div style="font-size:72px; margin-bottom:16px;">🧠</div>
-    <h2>GetalGeheugen PRO</h2>
-    <p>Installeer de app op je beginscherm<br>om te spelen en scores op te slaan.</p>
 
-    <div class="install-box">
-      <div class="install-step">
-        <div class="install-icon">🍎</div>
-        <div class="install-text">
-          <strong>iPhone / iPad (Safari)</strong>
-          <span>Tik op het <strong>Deel icoon</strong> ↑ onderaan en kies <strong>"Zet op beginscherm"</strong></span>
-        </div>
+    <!-- Logo -->
+    <div class="logo-wrap">
+      <div class="logo-card">3</div>
+      <div class="logo-card">7</div>
+      <div class="logo-card">2</div>
+      <div class="logo-card">8</div>
+    </div>
+
+    <h1>Getal<span>Geheugen</span></h1>
+    <p class="subtitle">Train je werkgeheugen — gratis</p>
+
+    <!-- Kies je toestel -->
+    <p class="steps-title">Kies je toestel</p>
+    <div class="os-wrap">
+      <button class="os-btn active" id="btn-ios" onclick="showOS('ios')">
+        <span class="os-icon">🍎</span>
+        iPhone / iPad
+      </button>
+      <button class="os-btn" id="btn-android" onclick="showOS('android')">
+        <span class="os-icon">🤖</span>
+        Android
+      </button>
+    </div>
+
+    <!-- iOS instructies -->
+    <div class="instruction-box" id="ios-steps">
+      <div class="instr-step">
+        <div class="instr-icon">1️⃣</div>
+        <div>Open deze pagina in <strong>Safari</strong></div>
       </div>
-      <hr class="install-divider">
-      <div class="install-step">
-        <div class="install-icon">🤖</div>
-        <div class="install-text">
-          <strong>Android (Chrome)</strong>
-          <span>Tik op de <strong>drie stipjes</strong> rechtsboven en kies <strong>"App installeren"</strong></span>
-        </div>
+      <div class="instr-step">
+        <div class="instr-icon">⬆️</div>
+        <div>Tik op het <strong>Deel icoon</strong> onderaan het scherm</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">➕</div>
+        <div>Kies <strong>"Zet op beginscherm"</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">✅</div>
+        <div>Tik op <strong>"Voeg toe"</strong> rechtsboven</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">🚀</div>
+        <div>Open de app vanaf je <strong>beginscherm</strong> en speel!</div>
       </div>
     </div>
 
-    <p style="margin-top:24px; font-size:12px; opacity:0.3;">
-      Eenmalig installeren -- daarna direct openen vanaf je beginscherm
-    </p>
+    <!-- Android instructies -->
+    <div class="instruction-box" id="android-steps" style="display:none;">
+      <div class="instr-step">
+        <div class="instr-icon">1️⃣</div>
+        <div>Open deze pagina in <strong>Chrome</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">⋮</div>
+        <div>Tik op de <strong>drie stipjes</strong> rechtsboven</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">➕</div>
+        <div>Kies <strong>"App installeren"</strong> of "Toevoegen aan startscherm"</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">✅</div>
+        <div>Tik op <strong>"Installeren"</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-icon">🚀</div>
+        <div>Open de app vanaf je <strong>startscherm</strong> en speel!</div>
+      </div>
+    </div>
+
+    <p class="hint">Eenmalig installeren — daarna altijd direct openen</p>
+
   </div>
 
   <div id="root"></div>
@@ -132,6 +330,17 @@
     if (!isStandalone) {
       document.getElementById('pwa-install-overlay').style.display = 'flex';
       document.getElementById('root').style.display = 'none';
+    }
+
+    // Detecteer automatisch iOS of Android
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!isIOS) { showOS('android'); }
+
+    function showOS(os) {
+      document.getElementById('ios-steps').style.display     = os === 'ios'     ? 'block' : 'none';
+      document.getElementById('android-steps').style.display = os === 'android' ? 'block' : 'none';
+      document.getElementById('btn-ios').classList.toggle('active',     os === 'ios');
+      document.getElementById('btn-android').classList.toggle('active', os === 'android');
     }
   </script>
 
