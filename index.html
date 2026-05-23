@@ -30,7 +30,6 @@
       background: #0D1136;
     }
 
-    /* Logo animatie */
     .logo-wrap {
       display: flex;
       gap: 10px;
@@ -48,6 +47,7 @@
       font-size: 28px;
       font-weight: 900;
       color: #fff;
+      font-family: 'Trebuchet MS', sans-serif;
       animation: popIn 0.4s ease both;
     }
 
@@ -80,10 +80,13 @@
       font-size: 32px;
       font-weight: 900;
       margin-bottom: 6px;
+      font-family: 'Trebuchet MS', sans-serif;
       animation: fadeUp 0.6s ease 0.4s both;
+      unicode-bidi: plaintext;
     }
 
-    h1 span { color: #A855F7; }
+    h1 .wit  { color: #fff; }
+    h1 .paars { color: #A855F7; }
 
     .subtitle {
       font-size: 14px;
@@ -92,7 +95,6 @@
       animation: fadeUp 0.6s ease 0.5s both;
     }
 
-    /* Stappen */
     .steps-title {
       font-size: 13px;
       opacity: 0.4;
@@ -102,54 +104,6 @@
       animation: fadeUp 0.6s ease 0.6s both;
     }
 
-    .steps-wrap {
-      width: 100%;
-      max-width: 360px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      animation: fadeUp 0.6s ease 0.7s both;
-    }
-
-    .step-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.08);
-      transition: all 0.2s;
-    }
-
-    .step-num {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #A855F7, #7C3AED);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 900;
-      flex-shrink: 0;
-      box-shadow: 0 0 16px rgba(168,85,247,0.5);
-    }
-
-    .step-text strong {
-      display: block;
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-
-    .step-text span {
-      font-size: 12px;
-      opacity: 0.5;
-      line-height: 1.4;
-    }
-
-    /* OS keuze knoppen */
     .os-wrap {
       width: 100%;
       max-width: 360px;
@@ -185,7 +139,6 @@
 
     .os-btn .os-icon { font-size: 28px; }
 
-    /* Instructie box */
     .instruction-box {
       width: 100%;
       max-width: 360px;
@@ -202,6 +155,7 @@
       background: rgba(255,255,255,0.05);
       border-bottom: 1px solid rgba(255,255,255,0.06);
       font-size: 14px;
+      line-height: 1.4;
     }
 
     .instr-step:last-child { border-bottom: none; }
@@ -211,22 +165,6 @@
       flex-shrink: 0;
       width: 32px;
       text-align: center;
-    }
-
-    /* Pulserende knop */
-    .install-btn {
-      margin-top: 24px;
-      padding: 16px 40px;
-      border-radius: 50px;
-      border: none;
-      background: linear-gradient(135deg, #A855F7, #7C3AED);
-      color: #fff;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-size: 17px;
-      font-weight: 900;
-      cursor: pointer;
-      box-shadow: 0 0 30px rgba(168,85,247,0.5);
-      animation: fadeUp 0.6s ease 0.9s both, pulse 2s ease 1.5s infinite;
     }
 
     .hint {
@@ -242,7 +180,6 @@
 
   <div id="pwa-install-overlay">
 
-    <!-- Logo -->
     <div class="logo-wrap">
       <div class="logo-card">3</div>
       <div class="logo-card">7</div>
@@ -250,71 +187,68 @@
       <div class="logo-card">8</div>
     </div>
 
-    <h1>Getal<span>Geheugen</span></h1>
-    <p class="subtitle">Train je werkgeheugen — gratis</p>
+    <h1><span class="wit">Getal</span><span class="paars">Geheugen</span></h1>
+    <p class="subtitle">Train je werkgeheugen &mdash; gratis</p>
 
-    <!-- Kies je toestel -->
     <p class="steps-title">Kies je toestel</p>
     <div class="os-wrap">
       <button class="os-btn active" id="btn-ios" onclick="showOS('ios')">
-        <span class="os-icon">🍎</span>
+        <span class="os-icon">&#127822;</span>
         iPhone / iPad
       </button>
       <button class="os-btn" id="btn-android" onclick="showOS('android')">
-        <span class="os-icon">🤖</span>
+        <span class="os-icon">&#129302;</span>
         Android
       </button>
     </div>
 
-    <!-- iOS instructies -->
     <div class="instruction-box" id="ios-steps">
       <div class="instr-step">
-        <div class="instr-icon">1️⃣</div>
+        <div class="instr-icon">1&#65039;&#8419;</div>
         <div>Open deze pagina in <strong>Safari</strong></div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">⬆️</div>
+        <div class="instr-icon">&#11014;&#65039;</div>
         <div>Tik op het <strong>Deel icoon</strong> onderaan het scherm</div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">➕</div>
+        <div class="instr-icon">&#10133;</div>
         <div>Kies <strong>"Zet op beginscherm"</strong></div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">✅</div>
+        <div class="instr-icon">&#9989;</div>
         <div>Tik op <strong>"Voeg toe"</strong> rechtsboven</div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">🚀</div>
+        <div class="instr-icon">&#128640;</div>
         <div>Open de app vanaf je <strong>beginscherm</strong> en speel!</div>
       </div>
     </div>
 
-    <!-- Android instructies -->
     <div class="instruction-box" id="android-steps" style="display:none;">
       <div class="instr-step">
-        <div class="instr-icon">1️⃣</div>
+        <div class="instr-icon">1&#65039;&#8419;</div>
         <div>Open deze pagina in <strong>Chrome</strong></div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">⋮</div>
+        <div class="instr-icon">&#8942;</div>
         <div>Tik op de <strong>drie stipjes</strong> rechtsboven</div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">➕</div>
+        <div class="instr-icon">&#10133;</div>
         <div>Kies <strong>"App installeren"</strong> of "Toevoegen aan startscherm"</div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">✅</div>
+        <div class="instr-icon">&#9989;</div>
         <div>Tik op <strong>"Installeren"</strong></div>
       </div>
       <div class="instr-step">
-        <div class="instr-icon">🚀</div>
+        <div class="instr-icon">&#128640;</div>
         <div>Open de app vanaf je <strong>startscherm</strong> en speel!</div>
       </div>
     </div>
 
-    <p class="hint">Eenmalig installeren — daarna altijd direct openen</p>
+    <p class="hint">Eenmalig installeren &mdash; daarna altijd direct openen</p>
 
   </div>
 
@@ -332,7 +266,6 @@
       document.getElementById('root').style.display = 'none';
     }
 
-    // Detecteer automatisch iOS of Android
     var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if (!isIOS) { showOS('android'); }
 
