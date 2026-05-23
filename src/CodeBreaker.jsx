@@ -98,7 +98,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
   function handleResume() {
     setShowMenu(false);
-    // Hervat timer
     if (phase === "input" && !gameOver) {
       startTimerFromNow();
     }
@@ -201,7 +200,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     if (correct) {
       clearInterval(timeTmr.current);
 
-      // Score berekening
       var elapsed  = Math.round((Date.now() - startTimeRef.current) / 1000);
       var tl       = getTimeLimit(digitsRef.current);
       var tijdBonus    = Math.max(0, Math.round((tl - elapsed) / tl * 100));
@@ -329,7 +327,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
       </div>
 
       {/* Display area */}
-      <div className="display-area" style={{gap:12}}>
+      <div className="display-area" style={{gap:10}}>
 
         {/* COUNTDOWN */}
         {phase === "countdown" && (
@@ -356,116 +354,84 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
         {/* INVOER */}
         {phase === "input" && (
-          <div style={{display:"flex", flexDirection:"column", gap:12, width:"100%", flex:1}}>
+          <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Timer balk */}
-            <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
+            {/* Timer balk + tijd */}
+            <div style={{display:"flex", alignItems:"center", gap:8}}>
+              <div style={{flex:1, height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
+                <div style={{
+                  height:"100%", width:timePct+"%",
+                  background:timerColor,
+                  boxShadow:"0 0 10px "+timerColor,
+                  borderRadius:3, transition:"width 1s linear, background 0.3s"
+                }}/>
+              </div>
               <div style={{
-                height:"100%", width:timePct+"%",
-                background:timerColor,
-                boxShadow:"0 0 10px "+timerColor,
-                borderRadius:3, transition:"width 1s linear, background 0.3s"
-              }}/>
+                fontSize:12, fontWeight:700, minWidth:32,
+                color: timePct < 30 ? "#EF4444" : "rgba(255,255,255,0.4)",
+                transition:"color 0.3s"
+              }}>⏱{timeLeft}s</div>
             </div>
 
-            {/* Tijd label */}
-            <div style={{
-              textAlign:"center", fontSize:13,
-              color: timePct < 30 ? "#EF4444" : "rgba(255,255,255,0.4)",
-              fontWeight: timePct < 30 ? 700 : 400,
-              transition:"color 0.3s"
-            }}>⏱ {timeLeft}s</div>
-
-            {/* Laatste poging — één rij */}
-            <div style={{
-              display:"flex", flexDirection:"column",
-              alignItems:"center", gap:12
-            }}>
-
-              {/* Vorige poging feedback */}
-              {lastPoging && (
+            {/* Feedback van laatste poging */}
+            {lastPoging && (
+              <div style={{
+                padding:"12px 16px",
+                background:"rgba(255,255,255,0.04)",
+                borderRadius:18,
+                border:"1px solid rgba(255,255,255,0.08)"
+              }}>
                 <div style={{
-                  display:"flex", flexDirection:"column",
-                  alignItems:"center", gap:8,
-                  padding:"14px 20px",
-                  background:"rgba(255,255,255,0.04)",
-                  borderRadius:20,
-                  border:"1px solid rgba(255,255,255,0.08)",
-                  width:"100%", maxWidth:360
+                  fontSize:11, opacity:0.35, letterSpacing:2,
+                  textTransform:"uppercase", marginBottom:10, textAlign:"center"
                 }}>
-                  <div style={{fontSize:11, opacity:0.35, letterSpacing:2, textTransform:"uppercase"}}>
-                    Poging {pogingenCount}
-                  </div>
-                  <div style={{display:"flex", gap:8, justifyContent:"center"}}>
-                    {lastPoging.guess.split("").map(function(d, di) {
-                      var fb    = lastPoging.feedback[di];
-                      var color = DIGIT_COLORS[d];
-                      var bg    = fb === "correct"  ? color
-                        : fb === "misplaced" ? color+"55"
-                        : "rgba(255,255,255,0.06)";
-                      var border = fb === "correct"  ? "2px solid "+color
-                        : fb === "misplaced" ? "2px solid "+color+"88"
-                        : "2px solid rgba(255,255,255,0.1)";
-                      return (
-                        <div key={di} style={{
-                          width:52, height:52, borderRadius:14,
-                          background:bg, border:border,
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:24, fontWeight:900, color:"#fff",
-                          boxShadow: fb === "correct" ? "0 0 16px "+color+"88" : "none"
-                        }}>{d}</div>
-                      );
-                    })}
-                  </div>
-                  <div style={{display:"flex", gap:6, alignItems:"center"}}>
-                    {lastPoging.feedback.map(function(f, fi) {
-                      return (
-                        <span key={fi} style={{fontSize:18}}>
-                          {f === "correct" ? "✅" : f === "misplaced" ? "🟡" : "❌"}
-                        </span>
-                      );
-                    })}
-                  </div>
+                  Poging {pogingenCount}
                 </div>
-              )}
-
-              {/* Huidige invoer */}
-              {!gameOver && (
-                <div style={{display:"flex", gap:8, justifyContent:"center"}}>
-                  {Array.from({length:displayDigits}, function(_, i) {
-                    var ch    = currentInp[i] || "";
-                    var color = ch ? DIGIT_COLORS[ch] : null;
-                    var isActive = !ch && i === currentInp.length;
+                <div style={{display:"flex", gap:8, justifyContent:"center", marginBottom:10}}>
+                  {lastPoging.guess.split("").map(function(d, di) {
+                    var fb    = lastPoging.feedback[di];
+                    var color = DIGIT_COLORS[d];
+                    var bg    = fb === "correct"  ? color
+                      : fb === "misplaced" ? color+"55"
+                      : "rgba(255,255,255,0.06)";
+                    var border = fb === "correct"  ? "2px solid "+color
+                      : fb === "misplaced" ? "2px solid "+color+"88"
+                      : "2px solid rgba(255,255,255,0.1)";
                     return (
-                      <div key={i} style={{
-                        width:52, height:52, borderRadius:14,
-                        background: ch ? color : "rgba(255,255,255,0.04)",
-                        border: ch ? "2px solid "+color
-                          : isActive ? "2px solid rgba(168,85,247,0.7)"
-                          : "2px dashed rgba(255,255,255,0.15)",
+                      <div key={di} style={{
+                        width:56, height:56, borderRadius:14,
+                        background:bg, border:border,
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:24, fontWeight:900, color:"#fff",
-                        boxShadow: ch ? "0 0 14px "+color+"66" : "none",
-                        transition:"all 0.15s"
-                      }}>{ch}</div>
+                        fontSize:26, fontWeight:900, color:"#fff",
+                        boxShadow: fb === "correct" ? "0 0 16px "+color+"88" : "none"
+                      }}>{d}</div>
                     );
                   })}
                 </div>
-              )}
-
-              {/* Gewonnen bericht */}
-              {gameOver && (
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:36}}>🎉</div>
-                  <div style={{fontSize:16, fontWeight:700, color:"#22C55E",
-                    textShadow:"0 0 20px #22C55E"}}>
-                    Code gekraakt in {pogingenCount} {pogingenCount === 1 ? "poging" : "pogingen"}!
-                  </div>
+                <div style={{display:"flex", gap:8, justifyContent:"center"}}>
+                  {lastPoging.feedback.map(function(f, fi) {
+                    return (
+                      <div key={fi} style={{width:56, textAlign:"center", fontSize:20}}>
+                        {f === "correct" ? "✅" : f === "misplaced" ? "🟡" : "❌"}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Numpad */}
+            {/* Gewonnen */}
+            {gameOver && (
+              <div style={{textAlign:"center", padding:"8px 0"}}>
+                <div style={{fontSize:32}}>🎉</div>
+                <div style={{fontSize:15, fontWeight:700, color:"#22C55E",
+                  textShadow:"0 0 20px #22C55E"}}>
+                  Code gekraakt in {pogingenCount} {pogingenCount === 1 ? "poging" : "pogingen"}!
+                </div>
+              </div>
+            )}
+
+            {/* Numpad — knoppen dimmen als al ingetikt */}
             {!gameOver && (
               <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
                 {nums.map(function(row, ri) {
@@ -477,25 +443,26 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                         var color  = isDel ? null : DIGIT_COLORS[k];
                         var isLit  = litKey === k;
                         var isUsed = !isDel && currentInp.includes(k);
+
                         return (
                           <button key={ki} onClick={function(){ tap(k); }} style={{
                             flex:1, aspectRatio:"1/1",
-                            borderRadius:20, border:"none",
+                            borderRadius:20, border: isUsed ? "2px solid rgba(255,255,255,0.15)" : "none",
                             cursor: isUsed ? "default" : "pointer",
                             fontSize: isDel ? 24 : 30, fontWeight:900,
+                            // Gedimde kleur als gebruikt, wit flash bij tikken
                             background: isDel
-                              ? isLit ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)"
+                              ? isLit ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.12)"
                               : isUsed ? "rgba(255,255,255,0.06)"
                               : isLit ? "#ffffff" : color,
                             color: isDel ? "#fff"
-                              : isUsed ? "rgba(255,255,255,0.15)"
+                              : isUsed ? "rgba(255,255,255,0.2)"
                               : isLit ? color : "#fff",
-                            opacity: isUsed ? 0.3 : 1,
                             boxShadow: isUsed || isDel ? "none"
                               : isLit ? "0 0 40px #ffffff88, 0 0 60px "+color+"66"
                               : "0 0 20px "+color+"55",
-                            transform: isLit ? "scale(0.91)" : "scale(1)",
-                            transition: isLit ? "none" : "transform 0.15s",
+                            transform: isLit ? "scale(0.91)" : isUsed ? "scale(0.95)" : "scale(1)",
+                            transition: isLit ? "none" : "all 0.15s",
                             display:"flex", alignItems:"center", justifyContent:"center"
                           }}>
                             {isDel ? "⌫" : k}
