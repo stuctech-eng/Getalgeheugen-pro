@@ -1,233 +1,240 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
- <meta charset="UTF-8" />
- <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
- <title>GetalGeheugen PRO</title>
- <link rel="manifest" href="/manifest.json">
- <link rel="apple-touch-icon" href="/apple-touch-icon.png">
- <meta name="apple-mobile-web-app-capable" content="yes">
- <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
- <meta name="apple-mobile-web-app-title" content="GetalGeheugen">
- <meta name="theme-color" content="#0D1136">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>GetalGeheugen PRO</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GetalGeheugen">
+  <meta name="theme-color" content="#0D1136">
 
- <style>
-   * { box-sizing: border-box; margin: 0; padding: 0; }
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-   body {
-     background: #0D1136;
-     color: #fff;
-     font-family: Arial, sans-serif;
-     min-height: 100vh;
-   }
+    body {
+      background: #0D1136;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+    }
 
-   #pwa-install-overlay {
-     display: none;
-     flex-direction: column;
-     align-items: center;
-     min-height: 100vh;
-     padding: 40px 24px 60px;
-     background: #0D1136;
-   }
+    #pwa-install-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 24px 60px;
+      background: #0D1136;
+    }
 
-   .subtitle {
-     font-size: 14px;
-     opacity: 0.5;
-     margin-bottom: 32px;
-   }
+    .app-title {
+      margin-bottom: 8px;
+      margin-top: 20px;
+      font-size: 40px;
+      font-weight: 900;
+      font-family: Arial, sans-serif;
+      letter-spacing: -1px;
+    }
 
-   .steps-title {
-     font-size: 13px;
-     opacity: 0.4;
-     letter-spacing: 2px;
-     text-transform: uppercase;
-     margin-bottom: 14px;
-   }
+    .app-title .wit   { color: #ffffff; }
+    .app-title .paars { color: #A855F7; }
 
-   .os-wrap {
-     width: 100%;
-     max-width: 360px;
-     display: flex;
-     gap: 10px;
-     margin: 20px 0;
-   }
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.5;
+      margin-bottom: 32px;
+    }
 
-   .os-btn {
-     flex: 1;
-     padding: 14px 10px;
-     border-radius: 16px;
-     border: 2px solid rgba(255,255,255,0.1);
-     background: rgba(255,255,255,0.06);
-     color: #fff;
-     cursor: pointer;
-     font-family: Arial, sans-serif;
-     font-size: 13px;
-     font-weight: 700;
-     transition: all 0.2s;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: 6px;
-   }
+    .steps-title {
+      font-size: 13px;
+      opacity: 0.4;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
 
-   .os-btn.active {
-     border-color: #A855F7;
-     background: rgba(168,85,247,0.2);
-     box-shadow: 0 0 20px rgba(168,85,247,0.3);
-   }
+    .os-wrap {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
 
-   .instruction-box {
-     width: 100%;
-     max-width: 360px;
-     border-radius: 20px;
-     overflow: hidden;
-   }
+    .os-btn {
+      flex: 1;
+      padding: 14px 10px;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
 
-   .instr-step {
-     display: flex;
-     align-items: center;
-     gap: 12px;
-     padding: 14px 18px;
-     background: rgba(255,255,255,0.05);
-     border-bottom: 1px solid rgba(255,255,255,0.06);
-     font-size: 14px;
-     line-height: 1.4;
-     font-family: Arial, sans-serif;
-   }
+    .os-btn.active {
+      border-color: #A855F7;
+      background: rgba(168,85,247,0.2);
+      box-shadow: 0 0 20px rgba(168,85,247,0.3);
+    }
 
-   .instr-step:last-child { border-bottom: none; }
+    .os-icon {
+      font-size: 28px;
+      font-style: normal;
+    }
 
-   .instr-num {
-     width: 32px;
-     height: 32px;
-     border-radius: 50%;
-     background: linear-gradient(135deg, #A855F7, #7C3AED);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: 14px;
-     font-weight: 900;
-     flex-shrink: 0;
-     font-family: Arial, sans-serif;
-     color: #fff;
-   }
+    .instruction-box {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 20px;
+      overflow: hidden;
+    }
 
-   .hint {
-     margin-top: 16px;
-     font-size: 11px;
-     opacity: 0.25;
-     text-align: center;
-   }
- </style>
+    .instr-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+      line-height: 1.4;
+      font-family: Arial, sans-serif;
+    }
+
+    .instr-step:last-child { border-bottom: none; }
+
+    .instr-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #A855F7, #7C3AED);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      flex-shrink: 0;
+      font-family: Arial, sans-serif;
+      color: #fff;
+    }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 11px;
+      opacity: 0.25;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
 
- <div id="pwa-install-overlay">
+  <div id="pwa-install-overlay">
 
-   <svg width="300" height="50" viewBox="0 0 300 50"
-     xmlns="http://www.w3.org/2000/svg"
-     style="margin-bottom:8px; margin-top: 20px;">
-     <text x="0" y="40"
-       font-family="Arial, sans-serif"
-       font-size="40"
-       font-weight="900"
-       fill="#ffffff">GetalG</text>
-     <text x="158" y="40"
-       font-family="Arial, sans-serif"
-       font-size="40"
-       font-weight="900"
-       fill="#A855F7">eheugen</text>
-   </svg>
+    <!-- Titel als gewone tekst met CSS -- geen SVG meer -->
+    <div class="app-title">
+      <span class="wit">Getal</span><span class="paars">Geheugen</span>
+    </div>
 
-   <p class="subtitle">Train je werkgeheugen &mdash; gratis</p>
+    <p class="subtitle">Train je werkgeheugen &mdash; gratis</p>
 
-   <p class="steps-title">Kies je toestel</p>
+    <p class="steps-title">Kies je toestel</p>
 
-   <div class="os-wrap">
-     <button class="os-btn active" id="btn-ios" onclick="showOS('ios')">
-       <span style="font-size:28px;">🍎</span>
-       iPhone / iPad
-     </button>
-     <button class="os-btn" id="btn-android" onclick="showOS('android')">
-       <span style="font-size:28px;">🤖</span>
-       Android
-     </button>
-   </div>
+    <div class="os-wrap">
+      <button class="os-btn active" id="btn-ios" onclick="showOS('ios')">
+        <span class="os-icon">&#x1F34E;</span>
+        iPhone / iPad
+      </button>
+      <button class="os-btn" id="btn-android" onclick="showOS('android')">
+        <span class="os-icon">&#x1F916;</span>
+        Android
+      </button>
+    </div>
 
-   <div class="instruction-box" id="ios-steps">
-     <div class="instr-step">
-       <div class="instr-num">1</div>
-       <div>Open deze pagina in <strong>Safari</strong></div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">2</div>
-       <div>Tik op het <strong>Deel icoon</strong> onderaan het scherm</div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">3</div>
-       <div>Kies <strong>"Zet op beginscherm"</strong></div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">4</div>
-       <div>Tik op <strong>"Voeg toe"</strong> rechtsboven</div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">5</div>
-       <div>Open de app vanaf je <strong>beginscherm</strong> en speel!</div>
-     </div>
-   </div>
+    <div class="instruction-box" id="ios-steps">
+      <div class="instr-step">
+        <div class="instr-num">1</div>
+        <div>Open deze pagina in <strong>Safari</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">2</div>
+        <div>Tik op het <strong>Deel icoon</strong> onderaan het scherm</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">3</div>
+        <div>Kies <strong>"Zet op beginscherm"</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">4</div>
+        <div>Tik op <strong>"Voeg toe"</strong> rechtsboven</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">5</div>
+        <div>Open de app vanaf je <strong>beginscherm</strong> en speel!</div>
+      </div>
+    </div>
 
-   <div class="instruction-box" id="android-steps" style="display:none;">
-     <div class="instr-step">
-       <div class="instr-num">1</div>
-       <div>Open deze pagina in <strong>Chrome</strong></div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">2</div>
-       <div>Tik op de <strong>drie stipjes</strong> rechtsboven</div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">3</div>
-       <div>Kies <strong>"App installeren"</strong> of "Toevoegen aan startscherm"</div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">4</div>
-       <div>Tik op <strong>"Installeren"</strong></div>
-     </div>
-     <div class="instr-step">
-       <div class="instr-num">5</div>
-       <div>Open de app vanaf je <strong>startscherm</strong> en speel!</div>
-     </div>
-   </div>
+    <div class="instruction-box" id="android-steps" style="display:none;">
+      <div class="instr-step">
+        <div class="instr-num">1</div>
+        <div>Open deze pagina in <strong>Chrome</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">2</div>
+        <div>Tik op de <strong>drie stipjes</strong> rechtsboven</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">3</div>
+        <div>Kies <strong>"App installeren"</strong> of "Toevoegen aan startscherm"</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">4</div>
+        <div>Tik op <strong>"Installeren"</strong></div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">5</div>
+        <div>Open de app vanaf je <strong>startscherm</strong> en speel!</div>
+      </div>
+    </div>
 
-   <p class="hint">Eenmalig installeren &mdash; daarna altijd direct openen</p>
+    <p class="hint">Eenmalig installeren &mdash; daarna altijd direct openen</p>
 
- </div>
+  </div>
 
- <div id="root"></div>
+  <div id="root"></div>
 
- <script type="module" src="/src/main.jsx"></script>
+  <script type="module" src="/src/main.jsx"></script>
 
- <script>
-   var isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                   || window.navigator.standalone === true
-                   || document.referrer.includes('android-app://');
+  <script>
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true
+                    || document.referrer.includes('android-app://');
 
-   if (!isStandalone) {
-     document.getElementById('pwa-install-overlay').style.display = 'flex';
-     document.getElementById('root').style.display = 'none';
-   }
+    if (!isStandalone) {
+      document.getElementById('pwa-install-overlay').style.display = 'flex';
+      document.getElementById('root').style.display = 'none';
+    }
 
-   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-   if (!isIOS) { showOS('android'); }
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!isIOS) { showOS('android'); }
 
-   function showOS(os) {
-     document.getElementById('ios-steps').style.display     = os === 'ios'     ? 'block' : 'none';
-     document.getElementById('android-steps').style.display = os === 'android' ? 'block' : 'none';
-     document.getElementById('btn-ios').classList.toggle('active',     os === 'ios');
-     document.getElementById('btn-android').classList.toggle('active', os === 'android');
-   }
- </script>
+    function showOS(os) {
+      document.getElementById('ios-steps').style.display     = os === 'ios'     ? 'block' : 'none';
+      document.getElementById('android-steps').style.display = os === 'android' ? 'block' : 'none';
+      document.getElementById('btn-ios').classList.toggle('active',     os === 'ios');
+      document.getElementById('btn-android').classList.toggle('active', os === 'android');
+    }
+  </script>
 
 </body>
 </html>
