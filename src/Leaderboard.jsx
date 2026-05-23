@@ -6,6 +6,8 @@ const MODES = [
   { id:"kleur",      emoji:"🎨", naam:"Kleur" },
   { id:"flits",      emoji:"⚡", naam:"Flits" },
   { id:"omgekeerd",  emoji:"🔄", naam:"Omgekeerd" },
+  { id:"oplopend",   emoji:"📈", naam:"Oplopend" },
+  { id:"codebreker", emoji:"🔓", naam:"Code Breker" },
 ];
 
 export default function Leaderboard({ uid, onBack }) {
@@ -27,15 +29,15 @@ export default function Leaderboard({ uid, onBack }) {
       <h2 className="screen-title">🏆 Scorebord</h2>
 
       <div style={{
-        display:"flex", gap:8, width:"100%", maxWidth:400,
+        display:"flex", gap:6, width:"100%", maxWidth:400,
         overflowX:"auto", paddingBottom:4
       }}>
         {MODES.map(function(m) {
           var active = m.id === activeMode;
           return (
             <button key={m.id} onClick={function() { setActiveMode(m.id); }} style={{
-              padding:"8px 16px", borderRadius:20, border:"none",
-              cursor:"pointer", fontSize:13, fontWeight:700, whiteSpace:"nowrap",
+              padding:"7px 12px", borderRadius:20, border:"none",
+              cursor:"pointer", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
               background: active ? "#A855F7" : "rgba(255,255,255,0.08)",
               color: active ? "#fff" : "rgba(255,255,255,0.5)",
               boxShadow: active ? "0 0 20px rgba(168,85,247,0.4)" : "none",

@@ -3,6 +3,7 @@ import { useAuth } from "./auth/useAuth.js";
 import { db } from "./lib/firebase.js";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import Game from "./Game.jsx";
+import CodeBreaker from "./CodeBreaker.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import Settings from "./Settings.jsx";
 import ModeSelect from "./ModeSelect.jsx";
@@ -14,7 +15,7 @@ const COLORS = [
   ["#3B82F6","#60A5FA"],["#F43F5E","#FB7185"]
 ];
 
-const VERSION = "5.3.0";
+const VERSION = "5.4.0";
 
 const DEFAULT_SETTINGS = {
   difficultyMod: 0,
@@ -161,34 +162,30 @@ export default function App() {
 
   if (screen === "kleur_settings") return (
     <KleurSettings
-      onStart={function(opts) {
-        setKleurOpts(opts);
-        setScreen("game");
-      }}
+      onStart={function(opts) { setKleurOpts(opts); setScreen("game"); }}
       onBack={function() { setScreen("mode_select"); }} />
   );
 
   if (screen === "game") return (
-    <Game
-      uid={uid}
-      player={player}
-      settings={settings}
-      gameMode={gameMode}
-      kleurOpts={kleurOpts}
-      onMenu={function() { setScreen("menu"); }}
-      onGameOver={handleGameOver} />
+    gameMode === "codebreker"
+      ? <CodeBreaker
+          uid={uid} player={player} settings={settings}
+          onMenu={function() { setScreen("menu"); }}
+          onGameOver={handleGameOver} />
+      : <Game
+          uid={uid} player={player} settings={settings}
+          gameMode={gameMode} kleurOpts={kleurOpts}
+          onMenu={function() { setScreen("menu"); }}
+          onGameOver={handleGameOver} />
   );
 
   if (screen === "scores") return (
-    <Leaderboard uid={uid}
-      onBack={function() { setScreen("menu"); }} />
+    <Leaderboard uid={uid} onBack={function() { setScreen("menu"); }} />
   );
 
   if (screen === "settings") return (
     <Settings
-      settings={settings}
-      player={player}
-      uid={uid}
+      settings={settings} player={player} uid={uid}
       onSave={saveSettings}
       onNameChange={function(newName) {
         setPlayer(newName);
@@ -205,11 +202,13 @@ export default function App() {
       <h2 style={{fontSize:26, fontWeight:900, textAlign:"center"}}>
         Goed gedaan, {player}!
       </h2>
-      <div style={{
-        fontSize:13, opacity:0.5, marginTop:-8,
-        color: gameMode === "kleur" ? "#EC4899" : "#A855F7"
-      }}>
-        {gameMode === "kleur" ? "🎨 Kleur modus" : "🧠 Klassiek"}
+      <div style={{fontSize:13, opacity:0.5, marginTop:-8}}>
+        {gameMode === "kleur" ? "🎨 Kleur" :
+         gameMode === "flits" ? "⚡ Flits" :
+         gameMode === "omgekeerd" ? "🔄 Omgekeerd" :
+         gameMode === "oplopend" ? "📈 Oplopend" :
+         gameMode === "codebreker" ? "🔓 Code Breker" :
+         "🧠 Klassiek"}
       </div>
       <div className="result-stats">
         <div className="stat-card">
@@ -244,7 +243,7 @@ export default function App() {
       <p className="sub">Welkom, <span className="accent">{player}</span>!</p>
       {bestScore && (
         <div className="best-score-badge">
-          🏆 Beste: {bestScore.score} pts -- {bestScore.maxDigits} cijfers
+          🏆 Beste: {bestScore.score} pts — {bestScore.maxDigits} cijfers
         </div>
       )}
       <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>🎮 Spelen</button>
