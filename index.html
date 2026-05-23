@@ -38,10 +38,9 @@
     }
 
     #pwa-install-overlay p {
-      font-size: 15px;
-      opacity: 0.8;
+      font-size: 14px;
+      opacity: 0.6;
       margin-bottom: 24px;
-      line-height: 1.4;
     }
 
     .install-box {
@@ -52,43 +51,42 @@
       max-width: 360px;
       width: 100%;
       text-align: left;
-      box-sizing: border-box;
     }
 
-    /* Mooie opvallende knop voor Android */
-    .install-btn {
-      display: none;
-      width: 100%;
-      background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-      text-align: center;
+    .install-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 20px;
     }
 
-    .install-btn:active {
-      transform: scale(0.98);
+    .install-step:last-child {
+      margin-bottom: 0;
     }
 
-    /* Instructie-stijlen */
-    .instruction-text {
-      display: none;
+    .install-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .install-text strong {
+      display: block;
       font-size: 15px;
-      line-height: 1.6;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #fff;
     }
 
-    .highlight-icon {
-      font-size: 22px;
-      background: rgba(255,255,255,0.15);
-      padding: 2px 8px;
-      border-radius: 6px;
-      display: inline-block;
-      margin: 0 4px;
+    .install-text span {
+      font-size: 13px;
+      opacity: 0.5;
+      line-height: 1.5;
+    }
+
+    .install-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 16px 0;
     }
   </style>
 </head>
@@ -97,27 +95,28 @@
   <div id="pwa-install-overlay">
     <div style="font-size:72px; margin-bottom:16px;">🧠</div>
     <h2>GetalGeheugen PRO</h2>
-    <p id="overlay-message">Installeer de app eenmalig op je beginscherm om dubbele accounts te voorkomen en je scores op te slaan.</p>
+    <p>Installeer de app op je beginscherm<br>om te spelen en scores op te slaan.</p>
 
     <div class="install-box">
-      <!-- Android krijgt deze knop te zien -->
-      <button id="android-btn" class="install-btn">⚡ Installeer Nu Direct</button>
-
-      <!-- Apple gebruikers krijgen deze super duidelijke tekst -->
-      <div id="ios-text" class="instruction-text">
-        <span style="font-size: 18px; display:block; margin-bottom:12px;"><strong>Actie vereist op iPhone/iPad:</strong></span>
-        1. Tik onderaan (of bovenaan) op het <strong>Deel-icoon</strong> <span class="highlight-icon">↑</span><br><br>
-        2. Scroll een stukje naar beneden en kies <strong>"Zet op beginscherm"</strong> <span class="highlight-icon">＋</span>
+      <div class="install-step">
+        <div class="install-icon">🍎</div>
+        <div class="install-text">
+          <strong>iPhone / iPad (Safari)</strong>
+          <span>Tik op het <strong>Deel icoon</strong> ↑ onderaan en kies <strong>"Zet op beginscherm"</strong></span>
+        </div>
       </div>
-      
-      <!-- Fallback voor als het een andere browser is -->
-      <div id="generic-text" class="instruction-text">
-        Open het menu van je browser en kies <strong>"Toevoegen aan beginscherm"</strong> of <strong>"App installeren"</strong>.
+      <hr class="install-divider">
+      <div class="install-step">
+        <div class="install-icon">🤖</div>
+        <div class="install-text">
+          <strong>Android (Chrome)</strong>
+          <span>Tik op de <strong>drie stipjes</strong> rechtsboven en kies <strong>"App installeren"</strong></span>
+        </div>
       </div>
     </div>
 
-    <p style="margin-top:24px; font-size:12px; opacity:0.4;">
-      Na installatie start je de app voortaan vanaf je startscherm.
+    <p style="margin-top:24px; font-size:12px; opacity:0.3;">
+      Eenmalig installeren -- daarna direct openen vanaf je beginscherm
     </p>
   </div>
 
@@ -126,60 +125,14 @@
   <script type="module" src="/src/main.jsx"></script>
 
   <script>
-    (function() {
-      // 1. Check of we al op het startscherm staan
-      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                      || window.navigator.standalone === true
-                      || document.referrer.includes('android-app://');
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true
+                    || document.referrer.includes('android-app://');
 
-      // Als de app al op het startscherm staat, doen we niks en start React direct
-      if (isStandalone) return;
-
-      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      var isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-      // We tonen de blokkade alleen op mobiel om dubbele logins te voorkomen
-      if (isMobile) {
-        document.getElementById('pwa-install-overlay').style.display = 'flex';
-        document.getElementById('root').style.display = 'none';
-
-        if (iOS) {
-          // Toon specifieke iOS instructies
-          document.getElementById('ios-text').style.display = 'block';
-        } else {
-          // Dit is waarschijnlijk Android. We luisteren naar het installatie-event van Chrome
-          var deferredPrompt;
-          window.addEventListener('beforeinstallprompt', function(e) {
-            // Voorkom dat Chrome zelf al een melding geeft
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Toon onze mooie paarse knop
-            var btn = document.getElementById('android-btn');
-            btn.style.display = 'block';
-
-            btn.addEventListener('click', function() {
-              // Open het officiële installatie-venster van de browser!
-              deferredPrompt.prompt();
-              deferredPrompt.userChoice.then(function(choiceResult) {
-                if (choiceResult.outcome === 'accepted') {
-                  console.log('Gebruiker heeft de app geïnstalleerd');
-                }
-                deferredPrompt = null;
-              });
-            });
-          });
-
-          // Als de browser na 1 seconde het event niet heeft afgevuurd (omdat het bijv. Firefox is),
-          // dan tonen we de algemene tekst als achtervang.
-          setTimeout(function() {
-            if (!deferredPrompt) {
-              document.getElementById('generic-text').style.display = 'block';
-            }
-          }, 1000);
-        }
-      }
-    })();
+    if (!isStandalone) {
+      document.getElementById('pwa-install-overlay').style.display = 'flex';
+      document.getElementById('root').style.display = 'none';
+    }
   </script>
 
 </body>
