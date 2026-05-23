@@ -13,7 +13,6 @@ const CD_GLOW   = ["rgba(239,68,68,0.4)","rgba(249,115,22,0.4)","rgba(34,197,94,
 const TOTAL_LIVES = 3;
 const START_DIGITS = 3;
 
-// Unieke willekeurige cijfers
 function rndUniqueDigits(n) {
   var digits = ["0","1","2","3","4","5","6","7","8","9"];
   var result = [];
@@ -25,16 +24,15 @@ function rndUniqueDigits(n) {
   return result.join("");
 }
 
-// Feedback berekening — unieke cijfers
 function calcFeedback(secret, guess) {
   var feedback = [];
   for (var i = 0; i < secret.length; i++) {
     if (guess[i] === secret[i]) {
-      feedback.push("correct");   // ✅ juiste plek
+      feedback.push("correct");
     } else if (secret.includes(guess[i])) {
-      feedback.push("misplaced"); // 🟡 verkeerde plek
+      feedback.push("misplaced");
     } else {
-      feedback.push("wrong");     // ❌ niet in code
+      feedback.push("wrong");
     }
   }
   return feedback;
@@ -53,7 +51,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   const [phase, setPhase]               = useState("countdown");
   const [cdCount, setCdCount]           = useState(3);
   const [cdAnim, setCdAnim]             = useState(true);
-  const [secret, setSecret]             = useState("");
   const [currentInp, setCurrentInp]     = useState([]);
   const [pogingen, setPogingen]         = useState([]);
   const [wins, setWins]                 = useState(0);
@@ -67,6 +64,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   const [showMenu, setShowMenu]         = useState(false);
   const [litKey, setLitKey]             = useState(null);
   const [gameOver, setGameOver]         = useState(false);
+  const [revealSecret, setRevealSecret] = useState("");
 
   const digitsRef     = useRef(START_DIGITS);
   const secretRef     = useRef("");
@@ -78,17 +76,12 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   const roundRef      = useRef(1);
   const pogingenRef   = useRef([]);
   const cdTmr         = useRef(null);
-  const phaseRef      = useRef("countdown");
+  const checkingRef   = useRef(false);
 
   useEffect(function() {
     startRound(START_DIGITS);
     return function() { clearInterval(cdTmr.current); };
   }, []);
-
-  function setPhaseSync(p) {
-    phaseRef.current = p;
-    setPhase(p);
-  }
 
   function handleBackPress() {
     clearInterval(cdTmr.current);
@@ -103,13 +96,15 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
     var digits = (nd !== undefined) ? nd : digitsRef.current;
     digitsRef.current = digits;
     setDisplayDigits(digits);
-    setPhaseSync("countdown");
+    setPhase("countdown");
     setCdCount(3);
     setCdAnim(true);
     setCurrentInp([]);
     setPogingen([]);
     pogingenRef.current = [];
     setGameOver(false);
+    setRevealSecret("");
+    checkingRef.current = false;
     audio.tick();
     var count = 3;
     cdTmr.current = setInterval(function() {
@@ -123,49 +118,54 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
         clearInterval(cdTmr.current);
         var s = rndUniqueDigits(digits);
         secretRef.current = s;
-        setSecret(s);
         setCurrentInp([]);
-        setPhaseSync("input");
+        setPhase("input");
       }
     }, 800);
   }
 
   function tap(k) {
-    if (phase !== "input" || gameOver) return;
+    if (phase !== "input" || gameOver || checkingRef.current) return;
+
     if (k === "del") {
       audio.plop();
       setCurrentInp(function(prev) { return prev.slice(0, -1); });
       return;
     }
-    // Geen dubbele cijfers in invoer
-    if (currentInp.includes(k)) return;
-    if (currentInp.length >= digitsRef.current) return;
 
-    audio.tapNote(currentInp.length, digitsRef.current);
-    vibrate();
-    setLitKey(k);
-    setTimeout(function() { setLitKey(null); }, 200);
+    setCurrentInp(function(prev) {
+      if (prev.includes(k)) return prev;
+      if (prev.length >= digitsRef.current) return prev;
 
-    var next = [...currentInp, k];
-    setCurrentInp(next);
+      audio.tapNote(prev.length, digitsRef.current);
+      vibrate();
+      setLitKey(k);
+      setTimeout(function() { setLitKey(null); }, 200);
 
-    // Automatisch controleren bij laatste cijfer
-    if (next.length === digitsRef.current) {
-      setTimeout(function() { checkPoging(next); }, 200);
-    }
+      var next = [...prev, k];
+
+      if (next.length === digitsRef.current) {
+        checkingRef.current = true;
+        // Gebruik setTimeout zodat state update eerst verwerkt wordt
+        setTimeout(function() { checkPoging(next); }, 50);
+      }
+
+      return next;
+    });
   }
 
   function checkPoging(guess) {
-    var feedback = calcFeedback(secretRef.current, guess);
+    var secret   = secretRef.current;
+    var feedback = calcFeedback(secret, guess);
     var correct  = feedback.every(function(f) { return f === "correct"; });
     var maxPog   = getMaxPogingen(digitsRef.current);
-    var newPogingen = [...pogingenRef.current, { guess, feedback }];
+    var newPogingen = [...pogingenRef.current, { guess: guess.join(""), feedback }];
     pogingenRef.current = newPogingen;
-    setPogingen(newPogingen);
+    setPogingen([...newPogingen]);
     setCurrentInp([]);
+    checkingRef.current = false;
 
     if (correct) {
-      // Gewonnen!
       var gebruiktePogingen = newPogingen.length;
       var pogingenBonus = (maxPog - gebruiktePogingen + 1) * 20;
       var newStreak = streakRef.current + 1;
@@ -204,12 +204,12 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
       }, 1500);
 
     } else if (newPogingen.length >= maxPog) {
-      // Geen pogingen meer
       streakRef.current = 0;
       setStreak(0);
       audio.buzz();
       vibrate("bad");
       setGameOver(true);
+      setRevealSecret(secret);
 
       var newLives = livesRef.current - 1;
       livesRef.current = newLives;
@@ -232,7 +232,8 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
           pogingenRef.current = [];
           startRound();
         }
-      }, 2000);
+      }, 2500);
+
     } else {
       audio.pop();
     }
@@ -243,10 +244,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
   var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
   var streakSize = streak >= 7 ? 24 : streak >= 5 ? 20 : streak >= 3 ? 17 : 14;
   var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["","0","del"]];
-
-  // Laatste poging correct?
-  var lastCorrect = pogingen.length > 0 &&
-    pogingen[pogingen.length-1].feedback.every(function(f) { return f === "correct"; });
 
   return (
     <div className="screen game-screen" style={{background:"#0D1136"}}>
@@ -349,7 +346,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
           </div>
         )}
 
-        {/* INVOER SCHERM */}
+        {/* INVOER */}
         {phase === "input" && (
           <div style={{display:"flex", flexDirection:"column", gap:6, width:"100%", flex:1}}>
 
@@ -357,7 +354,6 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
             <div style={{display:"flex", flexDirection:"column", gap:4}}>
               {pogingen.map(function(p, pi) {
                 var isLast = pi === pogingen.length - 1;
-                var isWin  = p.feedback.every(function(f) { return f === "correct"; });
                 return (
                   <div key={pi} style={{
                     display:"flex", gap:4, justifyContent:"center",
@@ -366,10 +362,10 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                     {p.guess.split("").map(function(d, di) {
                       var fb    = p.feedback[di];
                       var color = DIGIT_COLORS[d];
-                      var bg    = fb === "correct" ? color
-                        : fb === "misplaced" ? color+"66"
-                        : "rgba(255,255,255,0.08)";
-                      var border = fb === "correct" ? "2px solid "+color
+                      var bg    = fb === "correct"  ? color
+                        : fb === "misplaced" ? color+"55"
+                        : "rgba(255,255,255,0.06)";
+                      var border = fb === "correct"  ? "2px solid "+color
                         : fb === "misplaced" ? "2px solid "+color+"88"
                         : "2px solid rgba(255,255,255,0.1)";
                       return (
@@ -382,10 +378,7 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                         }}>{d}</div>
                       );
                     })}
-                    <div style={{
-                      display:"flex", alignItems:"center",
-                      gap:2, marginLeft:4
-                    }}>
+                    <div style={{display:"flex", alignItems:"center", gap:2, marginLeft:4}}>
                       {p.feedback.map(function(f, fi) {
                         return (
                           <span key={fi} style={{fontSize:14}}>
@@ -400,15 +393,26 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
 
               {/* Lege rijen */}
               {Array.from({length: maxPogingen - pogingen.length}, function(_, i) {
+                var isCurrent = i === 0 && !gameOver;
                 return (
-                  <div key={i} style={{display:"flex", gap:4, justifyContent:"center", opacity:0.2}}>
+                  <div key={i} style={{display:"flex", gap:4, justifyContent:"center"}}>
                     {Array.from({length:displayDigits}, function(_, j) {
+                      var ch = isCurrent && currentInp[j] ? currentInp[j] : "";
+                      var color = ch ? DIGIT_COLORS[ch] : null;
                       return (
                         <div key={j} style={{
                           width:44, height:44, borderRadius:12,
-                          border:"2px dashed rgba(255,255,255,0.2)",
-                          display:"flex", alignItems:"center", justifyContent:"center"
-                        }}/>
+                          background: ch ? color : "rgba(255,255,255,0.04)",
+                          border: ch
+                            ? "2px solid "+color
+                            : isCurrent && j === currentInp.length
+                            ? "2px solid rgba(168,85,247,0.6)"
+                            : "2px dashed rgba(255,255,255,0.12)",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:20, fontWeight:900, color:"#fff",
+                          boxShadow: ch ? "0 0 12px "+color+"66" : "none",
+                          opacity: isCurrent ? 1 : 0.2
+                        }}>{ch}</div>
                       );
                     })}
                     <div style={{width:60}}/>
@@ -417,33 +421,12 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
               })}
             </div>
 
-            {/* Huidige invoer */}
-            {!gameOver && (
-              <div style={{display:"flex", gap:4, justifyContent:"center", margin:"4px 0"}}>
-                {Array.from({length:displayDigits}, function(_, i) {
-                  var ch = currentInp[i] || "";
-                  var color = ch ? DIGIT_COLORS[ch] : null;
-                  return (
-                    <div key={i} style={{
-                      width:44, height:44, borderRadius:12,
-                      background: ch ? color : "rgba(255,255,255,0.05)",
-                      border: ch ? "2px solid "+color : "2px solid rgba(255,255,255,0.2)",
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:20, fontWeight:900, color:"#fff",
-                      boxShadow: ch ? "0 0 12px "+color+"66" : "none"
-                    }}>{ch}</div>
-                  );
-                })}
-                <div style={{width:60}}/>
-              </div>
-            )}
-
-            {/* Game over — code tonen */}
-            {gameOver && !lastCorrect && (
-              <div style={{textAlign:"center", padding:"8px 0"}}>
-                <div style={{fontSize:13, opacity:0.5, marginBottom:4}}>De code was:</div>
+            {/* Code tonen bij verlies */}
+            {gameOver && revealSecret && (
+              <div style={{textAlign:"center", padding:"6px 0"}}>
+                <div style={{fontSize:12, opacity:0.4, marginBottom:4}}>De code was:</div>
                 <div style={{display:"flex", gap:4, justifyContent:"center"}}>
-                  {secret.split("").map(function(d, i) {
+                  {revealSecret.split("").map(function(d, i) {
                     var color = DIGIT_COLORS[d];
                     return (
                       <div key={i} style={{
@@ -474,17 +457,19 @@ export default function CodeBreaker({ uid, player, onMenu, onGameOver, settings 
                         return (
                           <button key={ki} onClick={function(){ tap(k); }} style={{
                             flex:1, aspectRatio:"1/1",
-                            borderRadius:20, border:"none", cursor: isUsed ? "default" : "pointer",
+                            borderRadius:20, border:"none",
+                            cursor: isUsed ? "default" : "pointer",
                             fontSize: isDel ? 24 : 30, fontWeight:900,
                             background: isDel
                               ? isLit ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)"
-                              : isUsed ? "rgba(255,255,255,0.08)"
+                              : isUsed ? "rgba(255,255,255,0.06)"
                               : isLit ? "#ffffff" : color,
-                            color: isDel ? "#fff" : isUsed ? "rgba(255,255,255,0.2)" : isLit ? color : "#fff",
-                            opacity: isUsed ? 0.4 : 1,
-                            boxShadow: isUsed ? "none"
+                            color: isDel ? "#fff"
+                              : isUsed ? "rgba(255,255,255,0.15)"
+                              : isLit ? color : "#fff",
+                            opacity: isUsed ? 0.3 : 1,
+                            boxShadow: isUsed || isDel ? "none"
                               : isLit ? "0 0 40px #ffffff88, 0 0 60px "+color+"66"
-                              : isDel ? "none"
                               : "0 0 20px "+color+"55",
                             transform: isLit ? "scale(0.91)" : "scale(1)",
                             transition: isLit ? "none" : "transform 0.15s",

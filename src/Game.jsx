@@ -48,8 +48,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var isKleur      = gameMode === "kleur";
   var isFlits      = gameMode === "flits";
   var isOmgekeerd  = gameMode === "omgekeerd";
+  var isOplopend   = gameMode === "oplopend";
   var kleurFactor  = (kleurOpts && kleurOpts.factor) || 1.0;
-  var modeFactor   = isFlits ? 2.5 : isOmgekeerd ? 1.8 : 1.0;
+  var modeFactor   = isFlits ? 2.5 : isOmgekeerd ? 1.8 : isOplopend ? 1.6 : 1.0;
   var toonCijfers  = !isKleur || (kleurOpts && kleurOpts.cijfers);
 
   const [phase, setPhase]                 = useState("countdown");
@@ -229,11 +230,18 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
     setInp(next);
     if (next.length === digitsRef.current) {
       clearInterval(inputTmr.current);
-      // Omgekeerd: vergelijk met omgekeerde reeks
       var answer = next.join("");
-      var correct = isOmgekeerd
-        ? answer === seqRef.current.split("").reverse().join("")
-        : answer === seqRef.current;
+      var correct;
+      if (isOmgekeerd) {
+        correct = answer === seqRef.current.split("").reverse().join("");
+      } else if (isOplopend) {
+        // Numeriek sorteren van laag naar hoog
+        correct = answer === seqRef.current.split("").sort(function(a, b) {
+          return parseInt(a) - parseInt(b);
+        }).join("");
+      } else {
+        correct = answer === seqRef.current;
+      }
       handleResult(correct, false);
     }
   }
@@ -351,6 +359,11 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
   var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
   var nums = [["1","2","3"],["4","5","6"],["7","8","9"],["","0","del"]];
 
+  var modeHint = isOmgekeerd ? "↩️ omgekeerd"
+    : isOplopend ? "📈 oplopend"
+    : isFlits ? "⚡ flits"
+    : null;
+
   return (
     <div className="screen game-screen" style={{
       background: bgFlash === "ok"
@@ -372,27 +385,21 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           transition:"opacity 0.5s ease"
         }}>
           <div style={{
-            display:"flex", flexDirection:"column",
-            alignItems:"center", gap:12,
+            display:"flex", flexDirection:"column", alignItems:"center", gap:12,
             opacity: levelUpPhase === "showing" ? 1 : 0,
             transform: levelUpPhase === "showing" ? "scale(1)" : "scale(0.8)",
             transition:"opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s"
           }}>
             <div style={{fontSize:100}}>⬆️</div>
-            <div style={{
-              fontSize:48, fontWeight:900, color:"#A855F7",
-              textShadow:"0 0 40px #A855F7, 0 0 80px #A855F7",
-              letterSpacing:4
-            }}>LEVEL UP!</div>
-            <div style={{
-              fontSize:22, marginTop:4, color:"#22C55E",
-              textShadow:"0 0 20px #22C55E", fontWeight:700
-            }}>Nu {nextDigits} cijfers! 🎯</div>
+            <div style={{fontSize:48, fontWeight:900, color:"#A855F7",
+              textShadow:"0 0 40px #A855F7, 0 0 80px #A855F7", letterSpacing:4}}>LEVEL UP!</div>
+            <div style={{fontSize:22, marginTop:4, color:"#22C55E",
+              textShadow:"0 0 20px #22C55E", fontWeight:700}}>Nu {nextDigits} cijfers! 🎯</div>
           </div>
         </div>
       )}
 
-      {/* Pauze popup */}
+      {/* Pauze */}
       {showMenu && (
         <div style={{
           position:"fixed", inset:0, zIndex:100,
@@ -434,8 +441,8 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
           return <span key={i}>{i < wins ? "⭐" : "☆"}</span>;
         })}
         <span className="streak-hint">{wins}/{winsUp} voor level</span>
-        {isOmgekeerd && (
-          <span style={{fontSize:12, color:"#06B6D4", fontWeight:700, marginLeft:4}}>↩️ omgekeerd</span>
+        {modeHint && (
+          <span style={{fontSize:12, color:"#06B6D4", fontWeight:700, marginLeft:4}}>{modeHint}</span>
         )}
       </div>
 
@@ -454,15 +461,14 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               transition:"all 0.3s"
             }}>
               <div style={{
-                fontSize:110, fontWeight:900, lineHeight:1,
-                color:cdColor,
+                fontSize:110, fontWeight:900, lineHeight:1, color:cdColor,
                 textShadow:"0 0 40px "+cdColor+", 0 0 80px "+cdColor,
                 transform:cdAnim ? "scale(1)" : "scale(1.15)",
                 transition:"transform 0.15s"
               }}>{cdCount}</div>
             </div>
             <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-              {isFlits ? "⚡ Flits modus!" : isOmgekeerd ? "↩️ Omgekeerd!" : "Klaarmaken..."}
+              {isFlits ? "⚡ Flits modus!" : isOmgekeerd ? "↩️ Omgekeerd!" : isOplopend ? "📈 Oplopend!" : "Klaarmaken..."}
             </div>
             <div style={{display:"flex", gap:8}}>
               {[3,2,1].map(function(n) {
@@ -508,14 +514,9 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                 </div>
               );
             })}
-            {/* Omgekeerd pijl hint onder kaarten */}
-            {isOmgekeerd && (
-              <div style={{
-                fontSize:28, opacity:0.6, marginTop:4,
-                display:"flex", alignItems:"center", gap:8
-              }}>
-                <span>↩️</span>
-                <span style={{fontSize:13, opacity:0.7}}>Voer omgekeerd in</span>
+            {(isOmgekeerd || isOplopend) && (
+              <div style={{fontSize:13, opacity:0.5, marginTop:4}}>
+                {isOmgekeerd ? "↩️ Voer omgekeerd in" : "📈 Voer oplopend in"}
               </div>
             )}
           </div>
@@ -552,8 +553,10 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
                 </div>
               );
             })}
-            {isOmgekeerd && (
-              <div style={{fontSize:28, opacity:0.6, marginTop:4}}>↩️</div>
+            {(isOmgekeerd || isOplopend) && (
+              <div style={{fontSize:13, opacity:0.5, marginTop:4}}>
+                {isOmgekeerd ? "↩️ Omgekeerd" : "📈 Oplopend"}
+              </div>
             )}
           </div>
         )}
@@ -562,7 +565,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
         {(phase === "input" || phase === "fb") && (
           <div style={{display:"flex", flexDirection:"column", gap:10, width:"100%", flex:1}}>
 
-            {/* Timer */}
             <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
               <div style={{
                 height:"100%", width:inputPct+"%",
@@ -572,7 +574,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               }}/>
             </div>
 
-            {/* Bolletjes */}
             <div style={{display:"flex", gap:8, justifyContent:"center"}}>
               {Array.from({length:displayDigits}, function(_, i) {
                 var filled = i < inp.length;
@@ -594,7 +595,6 @@ export default function Game({ uid, player, onMenu, onGameOver, settings, gameMo
               })}
             </div>
 
-            {/* Numpad */}
             <div style={{flex:1, display:"flex", flexDirection:"column", gap:8}}>
               {nums.map(function(row, ri) {
                 return (
