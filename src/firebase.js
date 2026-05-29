@@ -19,7 +19,7 @@ export function getCollection(mode) {
 }
 
 export async function saveScore(uid, name, score, maxDigits, mode) {
-  if (!uid || score <= 0) return;
+  if (!uid) return;
   var col = getCollection(mode || "klassiek");
   try {
     var snap = await getDocs(query(
