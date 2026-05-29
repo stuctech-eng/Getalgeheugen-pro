@@ -120,12 +120,12 @@ export default function App() {
 
   if (screen === "error") return (
     <div className="screen center">
-      <p style={{fontSize:40}}>&#x26A0;&#xFE0F;</p>
+      <p style={{fontSize:40}}>⚠️</p>
       <p style={{opacity:0.6, textAlign:"center"}}>
         Verbinding mislukt.<br/>Controleer je internet.
       </p>
       <button className="btn-primary" onClick={function() { window.location.reload(); }}>
-        &#x1F504; Opnieuw proberen
+        🔄 Opnieuw proberen
       </button>
     </div>
   );
@@ -152,7 +152,7 @@ export default function App() {
           onChange={function(e) { setNameInput(e.target.value); setNameError(""); }}
           onKeyDown={function(e) { if (e.key === "Enter") handleNameSave(); }} />
         {nameError && <p style={{color:"#F87171", fontSize:13, textAlign:"center"}}>{nameError}</p>}
-        <button className="btn-primary" onClick={handleNameSave}>&#x1F680; Spelen</button>
+        <button className="btn-primary" onClick={handleNameSave}>🚀 Spelen</button>
       </div>
       <p className="version">v{VERSION}</p>
     </div>
@@ -218,19 +218,19 @@ export default function App() {
   if (screen === "result") return (
     <div className="screen center">
       <div style={{fontSize:72}}>
-        {result && result.maxDigits >= 6 ? "&#x1F3C6;" : result && result.maxDigits >= 4 ? "&#x1F3AF;" : "&#x1F4AA;"}
+        {result && result.maxDigits >= 6 ? "🏆" : result && result.maxDigits >= 4 ? "🎯" : "💪"}
       </div>
       <h2 style={{fontSize:26, fontWeight:900, textAlign:"center"}}>
         Goed gedaan, {player}!
       </h2>
       <div style={{fontSize:13, opacity:0.5, marginTop:-8}}>
-        {gameMode === "kleur"      ? "&#x1F3A8; Kleur"       :
-         gameMode === "flits"      ? "&#x26A1; Flits"         :
-         gameMode === "omgekeerd"  ? "&#x1F504; Omgekeerd"   :
-         gameMode === "oplopend"   ? "&#x1F4C8; Oplopend"    :
-         gameMode === "codebreker" ? "&#x1F513; Code Breker" :
-         gameMode === "simon"      ? "&#x1F3B5; Simon"       :
-         "&#x1F9E0; Klassiek"}
+        {gameMode === "kleur"      ? "🎨 Kleur"       :
+         gameMode === "flits"      ? "⚡ Flits"        :
+         gameMode === "omgekeerd"  ? "🔄 Omgekeerd"   :
+         gameMode === "oplopend"   ? "📈 Oplopend"    :
+         gameMode === "codebreker" ? "🔓 Code Breker" :
+         gameMode === "simon"      ? "🎵 Simon"       :
+         "🧠 Klassiek"}
       </div>
       <div className="result-stats">
         <div className="stat-card">
@@ -242,9 +242,9 @@ export default function App() {
           <div className="stat-label">{gameMode === "simon" ? "Reeks" : "Max cijfers"}</div>
         </div>
       </div>
-      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>&#x1F501; Opnieuw</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>&#x1F3C6; Scorebord</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("menu"); }}>&#x1F3E0; Menu</button>
+      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>🔁 Opnieuw</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("menu"); }}>🏠 Menu</button>
     </div>
   );
 
@@ -266,12 +266,12 @@ export default function App() {
       <p className="sub">Welkom, <span className="accent">{player}</span>!</p>
       {bestScore && (
         <div className="best-score-badge">
-          &#x1F3C6; Beste: {bestScore.score} pts &mdash; {bestScore.maxDigits} cijfers
+          🏆 Beste: {bestScore.score} pts &mdash; {bestScore.maxDigits} cijfers
         </div>
       )}
-      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>&#x1F3AE; Spelen</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>&#x1F3C6; Scorebord</button>
-      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>&#x2699;&#xFE0F; Instellingen</button>
+      <button className="btn-primary" onClick={function() { setScreen("mode_select"); }}>🎮 Spelen</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("scores"); }}>🏆 Scorebord</button>
+      <button className="btn-ghost"   onClick={function() { setScreen("settings"); }}>⚙️ Instellingen</button>
       <p className="version">v{VERSION}</p>
     </div>
   );
