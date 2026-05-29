@@ -12,7 +12,8 @@ export function getCollection(mode) {
     "flits":      "scores_flits",
     "omgekeerd":  "scores_omgekeerd",
     "oplopend":   "scores_oplopend",
-    "codebreker": "scores_codebreker"
+    "codebreker": "scores_codebreker",
+    "simon":      "scores_simon"
   };
   return map[mode] || "scores_klassiek";
 }
@@ -31,11 +32,11 @@ export async function saveScore(uid, name, score, maxDigits, mode) {
       await deleteDoc(snap.docs[0].ref);
     }
     await addDoc(collection(db, col), {
-      uid: uid,
-      name: name,
-      score: score,
+      uid:       uid,
+      name:      name,
+      score:     score,
       maxDigits: maxDigits,
-      mode: mode || "klassiek",
+      mode:      mode || "klassiek",
       createdAt: serverTimestamp()
     });
   } catch(e) {
@@ -64,7 +65,7 @@ export function subscribeScores(mode, callback) {
 export async function updateScoreName(uid, newName) {
   var cols = [
     "scores_klassiek","scores_kleur","scores_flits",
-    "scores_omgekeerd","scores_oplopend","scores_codebreker"
+    "scores_omgekeerd","scores_oplopend","scores_codebreker","scores_simon"
   ];
   for (var i = 0; i < cols.length; i++) {
     try {
