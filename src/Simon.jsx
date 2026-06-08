@@ -2,28 +2,24 @@ import { useState, useEffect, useRef } from "react";
 import { audio, vibrate } from "./audio.js";
 import { saveScore } from "./firebase.js";
 
-// 18 unieke kleuren — duidelijk van elkaar te onderscheiden
 const TILE_COLORS = {
   "0": "#14B8A6", "1": "#FF6B35", "2": "#A855F7", "3": "#06B6D4",
   "4": "#22C55E", "5": "#EC4899", "6": "#EAB308", "7": "#3B82F6",
   "8": "#F43F5E", "9": "#D946EF", "a": "#F97316", "b": "#84CC16",
-  "c": "#0EA5E9", "d": "#E879F9", "e": "#10B981", "f": "#FB923C",
-  "g": "#6366F1", "h": "#F43F5E"
+  "c": "#0EA5E9", "d": "#E879F9", "e": "#10B981"
 };
 
-// 18 unieke tonen — gespreid over het spectrum
 const TILE_TONES = {
   "0": 220, "1": 246, "2": 277, "3": 311,
   "4": 349, "5": 392, "6": 440, "7": 494,
   "8": 523, "9": 587, "a": 659, "b": 740,
-  "c": 830, "d": 932, "e": 1047, "f": 1175,
-  "g": 1319, "h": 1480
+  "c": 830, "d": 932, "e": 1047
 };
 
 const CD_COLORS = ["#EF4444","#F97316","#22C55E"];
 const CD_GLOW   = ["rgba(239,68,68,0.4)","rgba(249,115,22,0.4)","rgba(34,197,94,0.4)"];
 
-const BASE_ORDER = ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h"];
+const BASE_ORDER = ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e"];
 
 function playTone(freq, duration) {
   try {
@@ -51,14 +47,13 @@ function shuffleArray(arr) {
 }
 
 export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
-  var optSnelheid    = simonOpts && simonOpts.snelheid;
-  var optTijdsdruk   = simonOpts && simonOpts.tijdsdruk;
-  var optShuffle     = simonOpts && simonOpts.shuffle;
-  var optMoeilijk    = simonOpts && simonOpts.moeilijkheid ? simonOpts.moeilijkheid : 1;
+  var optSnelheid  = simonOpts && simonOpts.snelheid;
+  var optTijdsdruk = simonOpts && simonOpts.tijdsdruk;
+  var optShuffle   = simonOpts && simonOpts.shuffle;
+  var optMoeilijk  = simonOpts && simonOpts.moeilijkheid ? simonOpts.moeilijkheid : 1;
 
-  // Moeilijkheid: 1=start bij 1 +1, 2=start bij 2 +1, 3=start bij 3 +2
-  var startLen   = optMoeilijk === 3 ? 3 : optMoeilijk === 2 ? 2 : 1;
-  var groeiStap  = optMoeilijk === 3 ? 2 : 1;
+  var startLen      = optMoeilijk === 3 ? 3 : optMoeilijk === 2 ? 2 : 1;
+  var groeiStap     = optMoeilijk === 3 ? 2 : 1;
   var moeilijkFactor = optMoeilijk === 3 ? 1.5 : optMoeilijk === 2 ? 1.2 : 1.0;
 
   var factor = 1.0
@@ -67,26 +62,25 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     * (optTijdsdruk ? 1.4 : 1.0)
     * (optShuffle   ? 1.6 : 1.0);
 
-  const [phase, setPhase]           = useState("countdown");
-  const [cdCount, setCdCount]       = useState(3);
-  const [cdAnim, setCdAnim]         = useState(true);
-  const [sequence, setSequence]     = useState([]);
-  const [layout, setLayout]         = useState(BASE_ORDER);
-  const [litKey, setLitKey]         = useState(null);
-  const [inp, setInp]               = useState([]);
-  const [scoreTotal, setScoreTotal] = useState(0);
-  const [bestLen, setBestLen]       = useState(0);
-  const [showMenu, setShowMenu]     = useState(false);
-  const [flash, setFlash]           = useState(null);
-  const [timeLeft, setTimeLeft]     = useState(5);
-  const [showingSeq, setShowingSeq] = useState(false);
+  const [phase, setPhase]               = useState("countdown");
+  const [cdCount, setCdCount]           = useState(3);
+  const [cdAnim, setCdAnim]             = useState(true);
+  const [sequence, setSequence]         = useState([]);
+  const [layout, setLayout]             = useState(BASE_ORDER);
+  const [litKey, setLitKey]             = useState(null);
+  const [inp, setInp]                   = useState([]);
+  const [scoreTotal, setScoreTotal]     = useState(0);
+  const [bestLen, setBestLen]           = useState(0);
+  const [showMenu, setShowMenu]         = useState(false);
+  const [flash, setFlash]               = useState(null);
+  const [timeLeft, setTimeLeft]         = useState(5);
+  const [showingSeq, setShowingSeq]     = useState(false);
   const [levelUpPhase, setLevelUpPhase] = useState(null);
 
   const seqRef      = useRef([]);
   const inpRef      = useRef([]);
   const scoreRef    = useRef(0);
   const bestRef     = useRef(0);
-  const layoutRef   = useRef(BASE_ORDER);
   const phaseRef    = useRef("countdown");
   const cdTmr       = useRef(null);
   const timeTmr     = useRef(null);
@@ -101,17 +95,8 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     };
   }, []);
 
-  function setPhaseSync(p) {
-    phaseRef.current = p;
-    setPhase(p);
-  }
-
-  function handleBackPress() {
-    clearInterval(cdTmr.current);
-    clearInterval(timeTmr.current);
-    setShowMenu(true);
-  }
-
+  function setPhaseSync(p) { phaseRef.current = p; setPhase(p); }
+  function handleBackPress() { clearInterval(cdTmr.current); clearInterval(timeTmr.current); setShowMenu(true); }
   function handleResume() { setShowMenu(false); }
   function handleStop()   { setShowMenu(false); onMenu(); }
 
@@ -138,7 +123,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
         if (count % 2 === 0) audio.tick(); else audio.tock();
       } else {
         clearInterval(cdTmr.current);
-        // Begin met startLen items op basis van moeilijkheid
         var initSeq = [];
         for (var i = 0; i < startLen; i++) {
           initSeq.push(BASE_ORDER[Math.floor(Math.random() * BASE_ORDER.length)]);
@@ -150,15 +134,10 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
 
   async function nextRound(currentSeq, isFirst) {
     var newLayout = optShuffle ? shuffleArray(BASE_ORDER) : BASE_ORDER;
-    layoutRef.current = newLayout;
     setLayout(newLayout);
 
-    var newSeq;
-    if (isFirst) {
-      newSeq = currentSeq;
-    } else {
-      // Voeg groeiStap nieuwe items toe
-      newSeq = [...currentSeq];
+    var newSeq = isFirst ? currentSeq : [...currentSeq];
+    if (!isFirst) {
       for (var i = 0; i < groeiStap; i++) {
         newSeq.push(BASE_ORDER[Math.floor(Math.random() * BASE_ORDER.length)]);
       }
@@ -170,10 +149,11 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     setInp([]);
     checkingRef.current = false;
 
-    if (newSeq.length > startLen && (newSeq.length - startLen) % 3 === 0) {
+    if (!isFirst && (newSeq.length - startLen) % 3 === 0) {
       setLevelUpPhase("fading");
       await new Promise(function(r) { setTimeout(r, 300); });
       setLevelUpPhase("showing");
+      audio.levelUp();
       await new Promise(function(r) { setTimeout(r, 1000); });
       setLevelUpPhase(null);
     }
@@ -184,13 +164,8 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
   async function showSequence(seq) {
     setShowingSeq(true);
     setPhaseSync("show");
-
-    var speed = optSnelheid
-      ? Math.max(300, 800 - seq.length * 40)
-      : 800;
-
+    var speed = optSnelheid ? Math.max(300, 800 - seq.length * 40) : 800;
     await new Promise(function(r) { setTimeout(r, 400); });
-
     for (var i = 0; i < seq.length; i++) {
       var digit = seq[i];
       setLitKey(digit);
@@ -200,22 +175,16 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       setLitKey(null);
       await new Promise(function(r) { setTimeout(r, 150); });
     }
-
     setShowingSeq(false);
     setPhaseSync("input");
     startTime.current = Date.now();
-
     if (optTijdsdruk) {
       var limit = Math.max(3, 8 - Math.floor(seq.length / 3));
       setTimeLeft(limit);
       clearInterval(timeTmr.current);
       timeTmr.current = setInterval(function() {
         setTimeLeft(function(t) {
-          if (t <= 1) {
-            clearInterval(timeTmr.current);
-            handleWrong();
-            return 0;
-          }
+          if (t <= 1) { clearInterval(timeTmr.current); handleWrong(); return 0; }
           return t - 1;
         });
       }, 1000);
@@ -224,50 +193,34 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
 
   function tap(k) {
     if (phase !== "input" || checkingRef.current) return;
-
     setLitKey(k);
     playTone(TILE_TONES[k], 0.15);
     vibrate();
     setTimeout(function() { setLitKey(null); }, 180);
-
     var next = [...inpRef.current, k];
     inpRef.current = next;
     setInp([...next]);
-
     var pos = next.length - 1;
-
     if (next[pos] !== seqRef.current[pos]) {
       checkingRef.current = true;
       clearInterval(timeTmr.current);
       setTimeout(function() { handleWrong(); }, 200);
       return;
     }
-
     if (next.length === seqRef.current.length) {
       clearInterval(timeTmr.current);
       checkingRef.current = true;
-
       var elapsed    = (Date.now() - startTime.current) / 1000;
       var seqLen     = seqRef.current.length;
       var speedBonus = optTijdsdruk ? Math.max(0, Math.round((8 - elapsed) * 5)) : 0;
       var roundScore = Math.round((seqLen * 15 + speedBonus) * factor);
       scoreRef.current += roundScore;
       setScoreTotal(scoreRef.current);
-
-      if (seqLen > bestRef.current) {
-        bestRef.current = seqLen;
-        setBestLen(seqLen);
-      }
-
+      if (seqLen > bestRef.current) { bestRef.current = seqLen; setBestLen(seqLen); }
       setFlash("ok");
       audio.boing();
       vibrate("ok");
-
-      setTimeout(function() {
-        setFlash(null);
-        checkingRef.current = false;
-        nextRound(seqRef.current, false);
-      }, 600);
+      setTimeout(function() { setFlash(null); checkingRef.current = false; nextRound(seqRef.current, false); }, 600);
     }
   }
 
@@ -275,7 +228,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     setFlash("bad");
     audio.buzz();
     vibrate("bad");
-
     setTimeout(function() {
       setFlash(null);
       saveScore(uid, player, scoreRef.current, bestRef.current, "simon").then(function() {
@@ -286,12 +238,12 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     }, 1000);
   }
 
-  var cdColor = CD_COLORS[cdCount - 1] || "#22C55E";
-  var cdGlow  = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
-  var timePct = optTijdsdruk ? (timeLeft / Math.max(3, 8 - Math.floor((sequence.length) / 3))) * 100 : 100;
+  var cdColor  = CD_COLORS[cdCount - 1] || "#22C55E";
+  var cdGlow   = CD_GLOW[cdCount - 1]  || "rgba(34,197,94,0.4)";
+  var timePct  = optTijdsdruk ? (timeLeft / Math.max(3, 8 - Math.floor(sequence.length / 3))) * 100 : 100;
   var timerColor = timePct > 60 ? "#22C55E" : timePct > 30 ? "#EAB308" : "#EF4444";
 
-  // 3 kolommen × 6 rijen
+  // 3 kolommen × 5 rijen = 15 knoppen
   var rows = [];
   for (var i = 0; i < layout.length; i += 3) {
     rows.push(layout.slice(i, i + 3));
@@ -301,6 +253,8 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     <div style={{
       display:"flex", flexDirection:"column",
       height:"100dvh", overflow:"hidden",
+      paddingTop:"env(safe-area-inset-top)",
+      paddingBottom:"env(safe-area-inset-bottom)",
       background: flash === "ok"
         ? "radial-gradient(ellipse at center, rgba(34,197,94,0.2) 0%, transparent 70%), #0D1136"
         : flash === "bad"
@@ -314,7 +268,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
         <div style={{
           position:"fixed", inset:0, zIndex:99,
           display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center", gap:8,
+          alignItems:"center", justifyContent:"center",
           background:"rgba(0,0,0,0.92)",
           opacity: levelUpPhase === "fading" ? 0 : 1,
           transition:"opacity 0.5s ease"
@@ -348,23 +302,23 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
         </div>
       )}
 
-      {/* Header — compact */}
+      {/* Header */}
       <div style={{
         display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"10px 12px 4px", flexShrink:0
+        padding:"8px 12px", flexShrink:0
       }}>
         <button className="back-btn" onClick={handleBackPress}>←</button>
-        <div style={{display:"flex", alignItems:"center", gap:8}}>
-          <span style={{fontSize:13, opacity:0.5}}>👤 {player}</span>
+        <div style={{display:"flex", alignItems:"center", gap:6}}>
+          <span style={{fontSize:12, opacity:0.5}}>👤 {player}</span>
           <span style={{
-            fontSize:13, fontWeight:700,
+            fontSize:12, fontWeight:700,
             background:"rgba(168,85,247,0.2)", border:"1px solid rgba(168,85,247,0.4)",
-            borderRadius:20, padding:"3px 10px", color:"#A855F7"
+            borderRadius:20, padding:"3px 9px", color:"#A855F7"
           }}>Reeks {sequence.length}</span>
           <span style={{
-            fontSize:13, fontWeight:700,
+            fontSize:12, fontWeight:700,
             background:"rgba(255,255,255,0.07)",
-            borderRadius:20, padding:"3px 10px"
+            borderRadius:20, padding:"3px 9px"
           }}>🏆 {scoreTotal}</span>
         </div>
       </div>
@@ -373,28 +327,19 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       {optTijdsdruk && phase === "input" && (
         <div style={{padding:"0 12px 2px", flexShrink:0}}>
           <div style={{height:4, background:"rgba(255,255,255,0.08)", borderRadius:2, overflow:"hidden"}}>
-            <div style={{
-              height:"100%", width:timePct+"%",
-              background:timerColor, borderRadius:2,
-              transition:"width 1s linear"
-            }}/>
+            <div style={{height:"100%", width:timePct+"%", background:timerColor, borderRadius:2, transition:"width 1s linear"}}/>
           </div>
         </div>
       )}
 
       {/* Voortgang bolletjes */}
       {phase === "input" && sequence.length > 0 && (
-        <div style={{
-          display:"flex", gap:4, justifyContent:"center",
-          padding:"3px 0", flexShrink:0, flexWrap:"wrap",
-          maxWidth:"100%", overflow:"hidden"
-        }}>
+        <div style={{display:"flex", gap:4, justifyContent:"center", padding:"2px 8px", flexShrink:0, flexWrap:"wrap"}}>
           {sequence.map(function(_, i) {
             var filled = i < inp.length;
             return (
               <div key={i} style={{
-                width: filled ? 10 : 6,
-                height: filled ? 10 : 6,
+                width: filled ? 10 : 6, height: filled ? 10 : 6,
                 borderRadius:"50%",
                 background: flash === "bad" && filled ? "#EF4444"
                   : flash === "ok" ? "#22C55E"
@@ -420,10 +365,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
 
       {/* Countdown */}
       {phase === "countdown" && (
-        <div style={{
-          flex:1, display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center", gap:16
-        }}>
+        <div style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16}}>
           <div style={{
             width:160, height:160, borderRadius:"50%",
             background:"radial-gradient(circle, "+cdColor+"22 0%, transparent 70%)",
@@ -438,18 +380,13 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
               transition:"transform 0.15s"
             }}>{cdCount}</div>
           </div>
-          <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-            Simon!
-          </div>
+          <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>Simon!</div>
         </div>
       )}
 
-      {/* Grid — 3×6, vult de rest van het scherm */}
+      {/* Grid 3×5 */}
       {(phase === "show" || phase === "input") && (
-        <div style={{
-          flex:1, display:"flex", flexDirection:"column",
-          gap:6, padding:"4px 8px 8px", overflow:"hidden"
-        }}>
+        <div style={{flex:1, display:"flex", flexDirection:"column", gap:6, padding:"4px 8px 8px", overflow:"hidden"}}>
           {rows.map(function(row, ri) {
             return (
               <div key={ri} style={{display:"flex", gap:6, flex:1}}>
@@ -457,11 +394,9 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
                   var color = TILE_COLORS[k];
                   var isLit = litKey === k;
                   var inInp = inp.includes(k) && !showingSeq;
-
                   return (
                     <button key={ki} onClick={function(){ tap(k); }} style={{
-                      flex:1,
-                      borderRadius:16, border:"none",
+                      flex:1, borderRadius:16, border:"none",
                       cursor: showingSeq ? "default" : "pointer",
                       background: isLit ? "#ffffff"
                         : flash === "ok" ? color
@@ -483,15 +418,9 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       )}
 
       {/* Factor info */}
-      <div style={{
-        textAlign:"center", fontSize:10, opacity:0.25,
-        paddingBottom:6, flexShrink:0
-      }}>
-        ×{factor.toFixed(2)} punten
-        {optSnelheid  ? " ⚡" : ""}
-        {optTijdsdruk ? " ⏱" : ""}
-        {optShuffle   ? " 🔀" : ""}
-        {" · niveau "+optMoeilijk}
+      <div style={{textAlign:"center", fontSize:10, opacity:0.25, paddingBottom:4, flexShrink:0}}>
+        ×{factor.toFixed(2)} punten · niveau {optMoeilijk}
+        {optSnelheid ? " ⚡" : ""}{optTijdsdruk ? " ⏱" : ""}{optShuffle ? " 🔀" : ""}
       </div>
 
     </div>
