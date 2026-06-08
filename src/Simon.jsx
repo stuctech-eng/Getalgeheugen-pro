@@ -2,24 +2,28 @@ import { useState, useEffect, useRef } from "react";
 import { audio, vibrate } from "./audio.js";
 import { saveScore } from "./firebase.js";
 
-const DIGIT_COLORS = {
-  "0":"#14B8A6","1":"#FF6B35","2":"#A855F7","3":"#06B6D4",
-  "4":"#22C55E","5":"#EC4899","6":"#EAB308","7":"#3B82F6",
-  "8":"#F43F5E","9":"#D946EF"
+// 18 unieke kleuren — duidelijk van elkaar te onderscheiden
+const TILE_COLORS = {
+  "0": "#14B8A6", "1": "#FF6B35", "2": "#A855F7", "3": "#06B6D4",
+  "4": "#22C55E", "5": "#EC4899", "6": "#EAB308", "7": "#3B82F6",
+  "8": "#F43F5E", "9": "#D946EF", "a": "#F97316", "b": "#84CC16",
+  "c": "#0EA5E9", "d": "#E879F9", "e": "#10B981", "f": "#FB923C",
+  "g": "#6366F1", "h": "#F43F5E"
 };
 
-// Vaste toonhoogte per kleur
-const DIGIT_TONES = {
-  "0": 220, "1": 261, "2": 293, "3": 329,
+// 18 unieke tonen — gespreid over het spectrum
+const TILE_TONES = {
+  "0": 220, "1": 246, "2": 277, "3": 311,
   "4": 349, "5": 392, "6": 440, "7": 494,
-  "8": 523, "9": 587
+  "8": 523, "9": 587, "a": 659, "b": 740,
+  "c": 830, "d": 932, "e": 1047, "f": 1175,
+  "g": 1319, "h": 1480
 };
 
 const CD_COLORS = ["#EF4444","#F97316","#22C55E"];
 const CD_GLOW   = ["rgba(239,68,68,0.4)","rgba(249,115,22,0.4)","rgba(34,197,94,0.4)"];
 
-// Vaste layout — altijd zelfde posities
-const BASE_ORDER = ["1","2","3","4","5","6","7","8","9","0"];
+const BASE_ORDER = ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h"];
 
 function playTone(freq, duration) {
   try {
@@ -47,10 +51,18 @@ function shuffleArray(arr) {
 }
 
 export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
-  var optSnelheid  = simonOpts && simonOpts.snelheid;
-  var optTijdsdruk = simonOpts && simonOpts.tijdsdruk;
-  var optShuffle   = simonOpts && simonOpts.shuffle;
+  var optSnelheid    = simonOpts && simonOpts.snelheid;
+  var optTijdsdruk   = simonOpts && simonOpts.tijdsdruk;
+  var optShuffle     = simonOpts && simonOpts.shuffle;
+  var optMoeilijk    = simonOpts && simonOpts.moeilijkheid ? simonOpts.moeilijkheid : 1;
+
+  // Moeilijkheid: 1=start bij 1 +1, 2=start bij 2 +1, 3=start bij 3 +2
+  var startLen   = optMoeilijk === 3 ? 3 : optMoeilijk === 2 ? 2 : 1;
+  var groeiStap  = optMoeilijk === 3 ? 2 : 1;
+  var moeilijkFactor = optMoeilijk === 3 ? 1.5 : optMoeilijk === 2 ? 1.2 : 1.0;
+
   var factor = 1.0
+    * moeilijkFactor
     * (optSnelheid  ? 1.3 : 1.0)
     * (optTijdsdruk ? 1.4 : 1.0)
     * (optShuffle   ? 1.6 : 1.0);
@@ -126,28 +138,39 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
         if (count % 2 === 0) audio.tick(); else audio.tock();
       } else {
         clearInterval(cdTmr.current);
-        nextRound([]);
+        // Begin met startLen items op basis van moeilijkheid
+        var initSeq = [];
+        for (var i = 0; i < startLen; i++) {
+          initSeq.push(BASE_ORDER[Math.floor(Math.random() * BASE_ORDER.length)]);
+        }
+        nextRound(initSeq, true);
       }
     }, 800);
   }
 
-  async function nextRound(currentSeq) {
-    // Shuffle layout als optie aan
+  async function nextRound(currentSeq, isFirst) {
     var newLayout = optShuffle ? shuffleArray(BASE_ORDER) : BASE_ORDER;
     layoutRef.current = newLayout;
     setLayout(newLayout);
 
-    // Voeg random cijfer toe aan reeks
-    var newDigit = BASE_ORDER[Math.floor(Math.random() * BASE_ORDER.length)];
-    var newSeq = [...currentSeq, newDigit];
+    var newSeq;
+    if (isFirst) {
+      newSeq = currentSeq;
+    } else {
+      // Voeg groeiStap nieuwe items toe
+      newSeq = [...currentSeq];
+      for (var i = 0; i < groeiStap; i++) {
+        newSeq.push(BASE_ORDER[Math.floor(Math.random() * BASE_ORDER.length)]);
+      }
+    }
+
     seqRef.current = newSeq;
     setSequence(newSeq);
     inpRef.current = [];
     setInp([]);
     checkingRef.current = false;
 
-    // Toon level up als reeks langer dan 3
-    if (newSeq.length > 3 && newSeq.length % 3 === 1) {
+    if (newSeq.length > startLen && (newSeq.length - startLen) % 3 === 0) {
       setLevelUpPhase("fading");
       await new Promise(function(r) { setTimeout(r, 300); });
       setLevelUpPhase("showing");
@@ -155,7 +178,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       setLevelUpPhase(null);
     }
 
-    // Toon reeks
     await showSequence(newSeq);
   }
 
@@ -163,7 +185,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     setShowingSeq(true);
     setPhaseSync("show");
 
-    // Snelheid factor
     var speed = optSnelheid
       ? Math.max(300, 800 - seq.length * 40)
       : 800;
@@ -173,7 +194,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     for (var i = 0; i < seq.length; i++) {
       var digit = seq[i];
       setLitKey(digit);
-      playTone(DIGIT_TONES[digit], speed / 1000 * 0.8);
+      playTone(TILE_TONES[digit], speed / 1000 * 0.8);
       vibrate();
       await new Promise(function(r) { setTimeout(r, speed); });
       setLitKey(null);
@@ -184,7 +205,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
     setPhaseSync("input");
     startTime.current = Date.now();
 
-    // Tijdsdruk timer
     if (optTijdsdruk) {
       var limit = Math.max(3, 8 - Math.floor(seq.length / 3));
       setTimeLeft(limit);
@@ -205,9 +225,8 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
   function tap(k) {
     if (phase !== "input" || checkingRef.current) return;
 
-    // Flash knop
     setLitKey(k);
-    playTone(DIGIT_TONES[k], 0.15);
+    playTone(TILE_TONES[k], 0.15);
     vibrate();
     setTimeout(function() { setLitKey(null); }, 180);
 
@@ -217,7 +236,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
 
     var pos = next.length - 1;
 
-    // Fout?
     if (next[pos] !== seqRef.current[pos]) {
       checkingRef.current = true;
       clearInterval(timeTmr.current);
@@ -225,13 +243,12 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       return;
     }
 
-    // Reeks compleet?
     if (next.length === seqRef.current.length) {
       clearInterval(timeTmr.current);
       checkingRef.current = true;
 
-      var elapsed   = (Date.now() - startTime.current) / 1000;
-      var seqLen    = seqRef.current.length;
+      var elapsed    = (Date.now() - startTime.current) / 1000;
+      var seqLen     = seqRef.current.length;
       var speedBonus = optTijdsdruk ? Math.max(0, Math.round((8 - elapsed) * 5)) : 0;
       var roundScore = Math.round((seqLen * 15 + speedBonus) * factor);
       scoreRef.current += roundScore;
@@ -249,7 +266,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       setTimeout(function() {
         setFlash(null);
         checkingRef.current = false;
-        nextRound(seqRef.current);
+        nextRound(seqRef.current, false);
       }, 600);
     }
   }
@@ -261,7 +278,6 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
 
     setTimeout(function() {
       setFlash(null);
-      // Game over — sla score op
       saveScore(uid, player, scoreRef.current, bestRef.current, "simon").then(function() {
         onGameOver({ score: scoreRef.current, maxDigits: bestRef.current });
       }).catch(function() {
@@ -275,14 +291,16 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
   var timePct = optTijdsdruk ? (timeLeft / Math.max(3, 8 - Math.floor((sequence.length) / 3))) * 100 : 100;
   var timerColor = timePct > 60 ? "#22C55E" : timePct > 30 ? "#EAB308" : "#EF4444";
 
-  // Layout in rijen van 3
+  // 3 kolommen × 6 rijen
   var rows = [];
   for (var i = 0; i < layout.length; i += 3) {
     rows.push(layout.slice(i, i + 3));
   }
 
   return (
-    <div className="screen game-screen" style={{
+    <div style={{
+      display:"flex", flexDirection:"column",
+      height:"100dvh", overflow:"hidden",
       background: flash === "ok"
         ? "radial-gradient(ellipse at center, rgba(34,197,94,0.2) 0%, transparent 70%), #0D1136"
         : flash === "bad"
@@ -291,7 +309,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
       transition:"background 0.2s"
     }}>
 
-      {/* Level up */}
+      {/* Level up overlay */}
       {levelUpPhase && (
         <div style={{
           position:"fixed", inset:0, zIndex:99,
@@ -307,7 +325,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
             transform: levelUpPhase === "showing" ? "scale(1)" : "scale(0.8)",
             transition:"opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s"
           }}>
-            <div style={{fontSize:80}}>&#x1F3B5;</div>
+            <div style={{fontSize:80}}>🎵</div>
             <div style={{fontSize:36, fontWeight:900, color:"#A855F7",
               textShadow:"0 0 40px #A855F7", letterSpacing:4}}>
               REEKS {sequence.length}!
@@ -316,7 +334,7 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
         </div>
       )}
 
-      {/* Pauze */}
+      {/* Pauze overlay */}
       {showMenu && (
         <div style={{
           position:"fixed", inset:0, zIndex:100,
@@ -325,151 +343,155 @@ export default function Simon({ uid, player, onMenu, onGameOver, simonOpts }) {
           alignItems:"center", justifyContent:"center", gap:16
         }}>
           <p style={{fontSize:20, fontWeight:700, opacity:0.6, marginBottom:8}}>Wat wil je doen?</p>
-          <button className="btn-primary" style={{maxWidth:260}} onClick={handleResume}>&#x25B6; Verder spelen</button>
-          <button className="btn-ghost"   style={{maxWidth:260}} onClick={handleStop}>&#x1F6AA; Stoppen</button>
+          <button className="btn-primary" style={{maxWidth:260}} onClick={handleResume}>▶ Verder spelen</button>
+          <button className="btn-ghost"   style={{maxWidth:260}} onClick={handleStop}>🚪 Stoppen</button>
         </div>
       )}
 
-      {/* Header */}
-      <div className="game-header">
-        <button className="back-btn" onClick={handleBackPress}>&#x2190;</button>
-        <div className="player-name">&#x1F464; {player}</div>
-        <div className="round-num">Reeks {sequence.length}</div>
+      {/* Header — compact */}
+      <div style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"10px 12px 4px", flexShrink:0
+      }}>
+        <button className="back-btn" onClick={handleBackPress}>←</button>
+        <div style={{display:"flex", alignItems:"center", gap:8}}>
+          <span style={{fontSize:13, opacity:0.5}}>👤 {player}</span>
+          <span style={{
+            fontSize:13, fontWeight:700,
+            background:"rgba(168,85,247,0.2)", border:"1px solid rgba(168,85,247,0.4)",
+            borderRadius:20, padding:"3px 10px", color:"#A855F7"
+          }}>Reeks {sequence.length}</span>
+          <span style={{
+            fontSize:13, fontWeight:700,
+            background:"rgba(255,255,255,0.07)",
+            borderRadius:20, padding:"3px 10px"
+          }}>🏆 {scoreTotal}</span>
+        </div>
       </div>
 
-      {/* Score + info */}
-      <div className="level-row">
-        <span className="level-label">Reeks</span>
-        <div className="digit-bubble">{sequence.length}</div>
-        <span className="level-label">lang</span>
-        <span className="score-badge">&#x1F3C6; {scoreTotal}</span>
-        {bestLen > 0 && (
-          <span style={{fontSize:12, opacity:0.4, marginLeft:4}}>best: {bestLen}</span>
-        )}
-      </div>
-
-      {/* Timer als tijdsdruk aan */}
+      {/* Timer balk */}
       {optTijdsdruk && phase === "input" && (
-        <div style={{padding:"0 16px"}}>
-          <div style={{height:6, background:"rgba(255,255,255,0.08)", borderRadius:3, overflow:"hidden"}}>
+        <div style={{padding:"0 12px 2px", flexShrink:0}}>
+          <div style={{height:4, background:"rgba(255,255,255,0.08)", borderRadius:2, overflow:"hidden"}}>
             <div style={{
               height:"100%", width:timePct+"%",
-              background:timerColor,
-              boxShadow:"0 0 10px "+timerColor,
-              borderRadius:3, transition:"width 1s linear"
+              background:timerColor, borderRadius:2,
+              transition:"width 1s linear"
             }}/>
-          </div>
-          <div style={{textAlign:"center", fontSize:12, opacity:0.4, marginTop:4}}>
-            &#x23F1; {timeLeft}s
           </div>
         </div>
       )}
 
-      {/* Voortgang invoer bolletjes */}
+      {/* Voortgang bolletjes */}
       {phase === "input" && sequence.length > 0 && (
-        <div style={{display:"flex", gap:6, justifyContent:"center", padding:"4px 0"}}>
+        <div style={{
+          display:"flex", gap:4, justifyContent:"center",
+          padding:"3px 0", flexShrink:0, flexWrap:"wrap",
+          maxWidth:"100%", overflow:"hidden"
+        }}>
           {sequence.map(function(_, i) {
             var filled = i < inp.length;
-            var correct = filled && inp[i] === sequence[i];
             return (
               <div key={i} style={{
-                width: filled ? 12 : 8,
-                height: filled ? 12 : 8,
+                width: filled ? 10 : 6,
+                height: filled ? 10 : 6,
                 borderRadius:"50%",
                 background: flash === "bad" && filled ? "#EF4444"
                   : flash === "ok" ? "#22C55E"
-                  : filled ? DIGIT_COLORS[inp[i]] : "rgba(255,255,255,0.2)",
-                transition:"all 0.15s"
+                  : filled ? TILE_COLORS[inp[i]] : "rgba(255,255,255,0.2)",
+                transition:"all 0.15s", flexShrink:0
               }}/>
             );
           })}
         </div>
       )}
 
-      {/* Display */}
-      <div className="display-area" style={{padding:"8px 16px"}}>
+      {/* Status label */}
+      {(phase === "show" || phase === "input") && (
+        <div style={{
+          textAlign:"center", fontSize:12, fontWeight:700,
+          color: showingSeq ? "#A855F7" : "#22C55E",
+          opacity:0.8, letterSpacing:2, textTransform:"uppercase",
+          padding:"2px 0", flexShrink:0
+        }}>
+          {showingSeq ? "Onthoud..." : "Jouw beurt!"}
+        </div>
+      )}
 
-        {/* Countdown */}
-        {phase === "countdown" && (
-          <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:16}}>
+      {/* Countdown */}
+      {phase === "countdown" && (
+        <div style={{
+          flex:1, display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:16
+        }}>
+          <div style={{
+            width:160, height:160, borderRadius:"50%",
+            background:"radial-gradient(circle, "+cdColor+"22 0%, transparent 70%)",
+            border:"3px solid "+cdColor+"66",
+            boxShadow:"0 0 60px "+cdGlow+", inset 0 0 40px "+cdGlow,
+            display:"flex", alignItems:"center", justifyContent:"center"
+          }}>
             <div style={{
-              width:180, height:180, borderRadius:"50%",
-              background:"radial-gradient(circle, "+cdColor+"22 0%, transparent 70%)",
-              border:"3px solid "+cdColor+"66",
-              boxShadow:"0 0 60px "+cdGlow+", inset 0 0 40px "+cdGlow,
-              display:"flex", alignItems:"center", justifyContent:"center"
-            }}>
-              <div style={{
-                fontSize:110, fontWeight:900, lineHeight:1, color:cdColor,
-                textShadow:"0 0 40px "+cdColor,
-                transform:cdAnim ? "scale(1)" : "scale(1.15)",
-                transition:"transform 0.15s"
-              }}>{cdCount}</div>
-            </div>
-            <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
-              Simon!
-            </div>
+              fontSize:96, fontWeight:900, lineHeight:1, color:cdColor,
+              textShadow:"0 0 40px "+cdColor,
+              transform:cdAnim ? "scale(1)" : "scale(1.15)",
+              transition:"transform 0.15s"
+            }}>{cdCount}</div>
           </div>
-        )}
-
-        {/* Spel grid */}
-        {(phase === "show" || phase === "input") && (
-          <div style={{flex:1, display:"flex", flexDirection:"column", gap:8, width:"100%"}}>
-
-            {/* Status label */}
-            <div style={{
-              textAlign:"center", fontSize:13, fontWeight:700,
-              color: showingSeq ? "#A855F7" : "#22C55E",
-              opacity:0.7, letterSpacing:2, textTransform:"uppercase"
-            }}>
-              {showingSeq ? "Onthoud..." : "Jouw beurt!"}
-            </div>
-
-            {/* Gekleurde knoppen — geen cijfers */}
-            {rows.map(function(row, ri) {
-              return (
-                <div key={ri} style={{display:"flex", gap:8, flex:1}}>
-                  {row.map(function(k, ki) {
-                    var color  = DIGIT_COLORS[k];
-                    var isLit  = litKey === k;
-                    var inInp  = inp.includes(k) && !showingSeq;
-
-                    return (
-                      <button key={ki} onClick={function(){ tap(k); }} style={{
-                        flex:1, aspectRatio:"1/1",
-                        borderRadius:20, border:"none",
-                        cursor: showingSeq ? "default" : "pointer",
-                        background: isLit ? "#ffffff"
-                          : flash === "ok" ? color
-                          : flash === "bad" && inInp ? "#EF4444"
-                          : color + (showingSeq ? "44" : "cc"),
-                        boxShadow: isLit
-                          ? "0 0 40px #ffffff, 0 0 80px "+color+"88"
-                          : showingSeq ? "none"
-                          : "0 0 20px "+color+"55",
-                        transform: isLit ? "scale(0.91)" : "scale(1)",
-                        transition: isLit ? "none" : "all 0.15s",
-                        display:"flex", alignItems:"center", justifyContent:"center"
-                      }}>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
+          <div style={{fontSize:13, opacity:0.35, letterSpacing:4, textTransform:"uppercase"}}>
+            Simon!
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Grid — 3×6, vult de rest van het scherm */}
+      {(phase === "show" || phase === "input") && (
+        <div style={{
+          flex:1, display:"flex", flexDirection:"column",
+          gap:6, padding:"4px 8px 8px", overflow:"hidden"
+        }}>
+          {rows.map(function(row, ri) {
+            return (
+              <div key={ri} style={{display:"flex", gap:6, flex:1}}>
+                {row.map(function(k, ki) {
+                  var color = TILE_COLORS[k];
+                  var isLit = litKey === k;
+                  var inInp = inp.includes(k) && !showingSeq;
+
+                  return (
+                    <button key={ki} onClick={function(){ tap(k); }} style={{
+                      flex:1,
+                      borderRadius:16, border:"none",
+                      cursor: showingSeq ? "default" : "pointer",
+                      background: isLit ? "#ffffff"
+                        : flash === "ok" ? color
+                        : flash === "bad" && inInp ? "#EF4444"
+                        : color + (showingSeq ? "44" : "cc"),
+                      boxShadow: isLit
+                        ? "0 0 40px #ffffff, 0 0 80px "+color+"88"
+                        : showingSeq ? "none"
+                        : "0 0 16px "+color+"44",
+                      transform: isLit ? "scale(0.91)" : "scale(1)",
+                      transition: isLit ? "none" : "all 0.15s"
+                    }}/>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Factor info */}
       <div style={{
-        textAlign:"center", fontSize:11, opacity:0.3, marginBottom:8
+        textAlign:"center", fontSize:10, opacity:0.25,
+        paddingBottom:6, flexShrink:0
       }}>
-        &#x00D7;{factor.toFixed(2)} punten
-        {optSnelheid  ? " &#x26A1;" : ""}
-        {optTijdsdruk ? " &#x23F1;" : ""}
-        {optShuffle   ? " &#x1F500;" : ""}
+        ×{factor.toFixed(2)} punten
+        {optSnelheid  ? " ⚡" : ""}
+        {optTijdsdruk ? " ⏱" : ""}
+        {optShuffle   ? " 🔀" : ""}
+        {" · niveau "+optMoeilijk}
       </div>
 
     </div>
