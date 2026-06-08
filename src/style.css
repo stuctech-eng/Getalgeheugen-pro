@@ -15,7 +15,9 @@ body { font-family: 'Trebuchet MS', sans-serif; color: #fff; }
 .screen {
   position: fixed; inset: 0; z-index: 1;
   display: flex; flex-direction: column; align-items: center;
-  padding: 60px 18px 20px; gap: 14px; overflow-y: auto;
+  padding: env(safe-area-inset-top, 20px) 18px env(safe-area-inset-bottom, 20px);
+  padding-top: max(env(safe-area-inset-top, 0px), 20px);
+  gap: 14px; overflow-y: auto;
   background:
     radial-gradient(ellipse at 20% 10%, rgba(168,85,247,0.2) 0%, transparent 55%),
     radial-gradient(ellipse at 80% 90%, rgba(6,182,212,0.15) 0%, transparent 55%),
@@ -66,7 +68,7 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
 .btn-ghost:active { transform: scale(0.97); background: rgba(255,255,255,0.12); }
 
 .game-screen {
-  padding: 60px 16px 16px;
+  padding: max(env(safe-area-inset-top, 0px), 16px) 16px 16px;
   gap: 10px;
   max-width: 480px;
   width: 100%;
@@ -74,7 +76,6 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
   left: 50%;
   transform: translateX(-50%);
 }
-
 
 .game-header { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 0 4px; }
 .back-btn {
@@ -220,9 +221,7 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
 
 .bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 24px 20px 52px;
-
-
+  padding: 24px 20px max(env(safe-area-inset-bottom, 0px), 24px);
   display: flex; flex-direction: column; gap: 8px; align-items: center;
   background: linear-gradient(transparent, rgba(13,17,54,0.98) 30%);
   z-index: 10;
@@ -243,9 +242,3 @@ h1 { font-size: clamp(28px,8vw,38px); font-weight: 900; letter-spacing: -1px; te
   color: #A855F7; text-align: center;
   width: 100%; max-width: 340px;
 }
-@keyframes pulse {
-  0%,100% { opacity:1; }
-  50% { opacity:0.5; }
-}
-
-
